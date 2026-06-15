@@ -1,0 +1,23 @@
+{
+  "_comment": "Strix Personal — governed MCP proxy wiring (stdio). Copy to .mcp.json in your project root and replace the upstream server + secrets. Each upstream MCP server you want governed gets one entry: the governed proxy is the command, and it spawns the upstream server after the `--`. Claude Code owns this process: spawned when the plugin/session starts, resident across every tool call, torn down at session end. See docs/strix-personal/connected-proxy-and-private-distribution.md.",
+  "mcpServers": {
+    "notion-governed": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@strixgov/mcp-proxy",
+        "--",
+        "npx",
+        "-y",
+        "@notionhq/notion-mcp-server"
+      ],
+      "env": {
+        "NOTION_TOKEN": "REPLACE_WITH_UPSTREAM_CREDENTIAL",
+        "STRIX_PROXY_STORAGE_PATH": "${HOME}/.strix-mcp-proxy",
+        "STRIX_API_KEY": "REPLACE_WITH_sk_live_KEY_FROM_strixgov.com/console/api-keys",
+        "STRIX_TENANT_ID": "REPLACE_WITH_WORKSPACE_ID",
+        "STRIX_PLATFORM_API_URL": "https://www.strixgov.com"
+      }
+    }
+  }
+}
