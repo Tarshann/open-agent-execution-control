@@ -1,8 +1,0 @@
-{
-  "name": "strix-verifier",
-  "source": "./strixgov-plugins",
-  "description": "Independently verify Strix signed evidence, approvals, quorums, swarm runs, and receipt chains — zero shared code, offline-capable.",
-  "version": "1.9.4",
-  "license": "MIT",
-  "keywords": ["verification","cryptography","governance","ed25519","audit"]
-}

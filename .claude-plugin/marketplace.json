@@ -1,11 +1,8 @@
 {
   "name": "strix-private",
-  "owner": {
-    "name": "Strix Labs",
-    "email": "hello@strixgov.com"
-  },
+  "owner": { "name": "Strix Labs", "email": "hello@strixgov.com" },
   "metadata": {
-    "description": "Strix Personal \u2014 private / early-access channel (access-gated).",
+    "description": "Strix - private / early-access channel (access-gated).",
     "homepage": "https://www.strixgov.com"
   },
   "plugins": [
@@ -14,18 +11,17 @@
       "source": "./plugins/strix-personal",
       "description": "Scan your code for consequential actions, wrap the risky ones with Strix governance, and produce receipts you can independently verify.",
       "version": "0.1.0",
-      "author": {
-        "name": "Strix Labs"
-      },
+      "author": { "name": "Strix Labs" },
       "license": "MIT",
-      "keywords": [
-        "governance",
-        "ai-safety",
-        "agents",
-        "audit",
-        "proof",
-        "execution-control"
-      ]
+      "keywords": ["governance","ai-safety","agents","audit","proof","execution-control"]
+    },
+    {
+      "name": "strix-verifier",
+      "source": "./strixgov-plugins",
+      "description": "Independently verify Strix signed evidence, approvals, quorums, swarm runs, and receipt chains - zero shared code, offline-capable.",
+      "version": "1.9.4",
+      "license": "MIT",
+      "keywords": ["verification","cryptography","governance","ed25519","audit"]
     }
   ]
 }
