@@ -1,0 +1,10 @@
+{
+  "name": "strix-verifier",
+  "description": "Independent cryptographic verification of Strix evidence records.",
+  "version": "1.9.4",
+  "author": { "name": "Strix", "url": "https://strixgov.com" },
+  "homepage": "https://strixgov.com",
+  "repository": "https://github.com/Strixgov/strix-verifier-plugin",
+  "license": "MIT",
+  "keywords": ["verification", "cryptography", "governance"]
+}
