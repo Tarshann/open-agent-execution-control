@@ -24,6 +24,7 @@ account, no API key, no trust in Strix tooling. The tool is @strixgov/verifier
 
 - VERIFIED: signed by the claimed kid; pinned + live JWKS agree. Clean pass.
 - VERIFIED_PINNED_ONLY / VERIFIED_LIVE_ONLY: valid, only one JWKS source reached.
+- VERIFIED_OFFLINE_BY_VERIFIER: the connector confirmed the Ed25519 signature against the JWKS server-side. Equivalent to a clean pass; re-run `npx @strixgov/verifier` to reproduce it locally.
 - LEGACY_UNSIGNED: predates signing. Expected for earliest records; NOT a failure.
 - COMPLIANCE_VIOLATION: Ed25519 verification failed. This is the real INVALID.
 - KID_NOT_FOUND: key unknown to both JWKS -> cannot verify (distinct from invalid;
