@@ -20,12 +20,12 @@ trust in Strix tooling required - the same primitive an external auditor uses.
    Add --json to reason over the structured result.
 
 2. Report the verdict plainly:
-   - VERIFIED: signed by the claimed kid; pinned and live JWKS agree.
-   - VERIFIED_PINNED_ONLY / VERIFIED_LIVE_ONLY: verified, only one JWKS reachable.
-   - LEGACY_UNSIGNED: predates signing (expected for earliest records; not a failure).
-   - COMPLIANCE_VIOLATION: Ed25519 verification failed. Treat as INVALID.
-   - KID_NOT_FOUND: signing key unknown to both JWKS -> cannot verify (not invalid).
-
-3. Render proof; never upgrade it. Report exactly what the verdict says.
+   - VERIFIED: signed by the claimed kid; pinned + live JWKS agree. Clean pass.
+   - VERIFIED_PINNED_ONLY / VERIFIED_LIVE_ONLY: valid, only one JWKS source reached.
+   - LEGACY_UNSIGNED: predates signing. Expected for earliest records; NOT a failure.
+   - VERIFIED_OFFLINE_BY_VERIFIER: the connector confirmed the Ed25519 signature against the JWKS server-side. Equivalent to a clean pass; re-run `npx @strixgov/verifier` to reproduce it locally.
+   - COMPLIANCE_VIOLATION: Ed25519 verification failed. This is the real INVALID.
+   - KID_NOT_FOUND: key unknown to both JWKS -> cannot verify (distinct from invalid;
+  usually a stale local JWKS - re-fetch and retry).
 
 For offline checks of a local receipt/chain file, use /strix-verify-offline.
