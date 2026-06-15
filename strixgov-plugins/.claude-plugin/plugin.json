@@ -1,6 +1,6 @@
 {
   "name": "strix-verifier",
-  "version": "1.9.4",
+  "version": "1.11.0",
   "description": "Independently verify Strix signed evidence, approvals, quorums, swarm runs, and tool-gateway receipt chains - zero shared code, offline-capable, via npx @strixgov/verifier.",
   "author": { "name": "Strix Labs", "email": "hello@strixgov.com" },
   "homepage": "https://www.strixgov.com",
