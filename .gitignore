@@ -1,0 +1,10 @@
+# This repo is checked out at the home-directory root, so git would otherwise
+# see every file in the home folder (secrets, other repos, node_modules) as
+# stageable content. Ignore EVERYTHING at the root, then re-include only the
+# paths this repo actually owns. Result: `git add -A` can never stage a secret.
+/*
+!/.gitignore
+!/.claude-plugin/
+!/plugins/
+!/strixgov-plugins/
+!/README.md
