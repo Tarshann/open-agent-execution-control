@@ -1,27 +1,17 @@
 {
-  "name": "strix-private",
-  "owner": { "name": "Strix Labs", "email": "hello@strixgov.com" },
+  "name": "strixgov",
+  "owner": { "name": "Strix", "url": "https://www.strixgov.com" },
   "metadata": {
-    "description": "Strix - private / early-access channel (access-gated).",
-    "homepage": "https://www.strixgov.com"
+    "description": "Strix Open — the SGRF v1 governance-review skills. Review how any system governs execution, score it on four orthogonal axes, and wire a first governed action. Advisory; no Strix account required."
   },
   "plugins": [
     {
-      "name": "strix-personal",
-      "source": "./plugins/strix-personal",
-      "description": "Scan your code for consequential actions, wrap the risky ones with Strix governance, and produce receipts you can independently verify.",
-      "version": "0.1.0",
-      "author": { "name": "Strix Labs" },
-      "license": "MIT",
-      "keywords": ["governance","ai-safety","agents","audit","proof","execution-control"]
-    },
-    {
-      "name": "strix-verifier",
-      "source": "./strixgov-plugins",
-      "description": "Independently verify Strix signed evidence, approvals, quorums, swarm runs, and receipt chains - zero shared code, offline-capable.",
-      "version": "1.9.4",
-      "license": "MIT",
-      "keywords": ["verification","cryptography","governance","ed25519","audit"]
+      "name": "strix-governance",
+      "source": { "source": "github", "repo": "Strixgov/skills" },
+      "version": "0.2.5",
+      "category": "security",
+      "description": "Run a Strix Governance Review (SGRF v1) on a system (/strix-governance:runtime-governance-review), a PR (/strix-governance:govern-pr), or a release (/strix-governance:release-readiness) — and wire a first governed, recorded action (/strix-governance:strix-wire). Plugin skills are namespaced /strix-governance:<skill>. The three review lenses are advisory and run anywhere; strix-wire needs a Strix runtime.",
+      "tags": ["governance", "sgrf", "ai-agents", "execution-control", "code-review"]
     }
   ]
 }
