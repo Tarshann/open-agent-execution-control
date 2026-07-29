@@ -32,7 +32,8 @@ rows, destination, requester
 3. mint_execution_token()     -- bound to payload+destination+transform+classification, TTL
         |
         v
-4. redeem_execution_token()   -- binding must still match; single-use -> STOP if missing/expired/replayed/tampered
+4. redeem_execution_token()   -- signature verified, then binding; single-use under an
+                                 exclusive lock -> STOP if missing/expired/replayed/tampered
         |
         v
 5. apply declared transform   -- only if policy marked the export deidentified
@@ -151,17 +152,40 @@ conflated with a policy denial.
 
 ## 8. Selective disclosure via Merkle inclusion proofs
 
-`build_merkle_tree()` builds a standard binary hash tree (leaves sorted by
-`row_id` for determinism; an unpaired last node is duplicated as its own
-sibling) over the full row set evaluated by policy — including barred rows,
+`build_merkle_tree()` builds a binary hash tree over the full row set evaluated
+by policy — including barred rows,
 so their membership can later be proven without disclosing admitted rows'
 content, or vice versa. `build_selective_disclosure(rows, row_ids)` reveals
 only the requested rows plus their inclusion proofs and the committed root;
 `verify_selective_disclosure()` confirms each disclosed row is genuinely a
 member of the set committed to that root.
 
+### Construction, and why it is this shape
+
+Three properties, each there because its absence was a defect:
+
+- **Leaves are sorted by `row_id`, and duplicate ids are refused.**
+  `merkle_inclusion_proof()` resolves a `row_id` to a single index, so two rows
+  sharing an id would make a proof ambiguous — it would attest one copy and read
+  as false for the other. Refusing at construction removes the ambiguity rather
+  than documenting it.
+- **An unpaired node is promoted, not hashed with itself.** Duplicating it made
+  an odd tree collide with the even tree that really contained the repeat:
+  `[a,b,c]` hashed identically to `[a,b,c,c]`. Refusing duplicate ids already
+  makes that pair unconstructible, so promotion is defence in depth — the root
+  no longer depends on the duplicate check staying in place. Leaf and internal
+  nodes are domain-separated by key name (`rowId`/`classification`/`fieldsHash`
+  vs `left`/`right`), so a promoted internal hash cannot be replayed as a leaf.
+- **The leaf count and a versioned domain tag are folded into the published
+  root** (`MERKLE_DOMAIN`). Without the count, the root committed to the tree's
+  *contents* but not to how many rows there were, so a disclosure could assert
+  any `totalRowCountCommitted` it liked unchallenged. `verify_merkle_inclusion()`
+  therefore requires the count — verification cannot be performed without
+  committing to a row number, and a wrong number fails.
+
 **What this proves:** the disclosed rows are members of the exact row set
-this receipt's Merkle root commits to. **What this does not prove:** that
+this receipt's Merkle root commits to, and that set had exactly the stated
+number of rows. **What this does not prove:** that
 the disclosed rows are the complete barred set, the complete admitted set,
 or the complete original dataset — every disclosure and every verification
 result carries this disclaimer verbatim (`_COMPLETENESS_DISCLAIMER`), and

@@ -7,7 +7,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from conftest import requires_signing
 
+# Minting now signs the token record, so these need the Ed25519 backend.
+# Before the record was signed, minting was pure JSON and they ran anywhere.
+
+
+@requires_signing
 def test_expired_token_fails_closed(core_mod, tmp_path):
     state_dir = tmp_path / ".strix"
     bound = dict(

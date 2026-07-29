@@ -40,12 +40,36 @@ list of non-claims.
    checks whether approval was granted — a coincidentally-true grant never
    masks `approver_id == requester_id`.
 4. **The execution token is bound to the exact request it was minted
-   against.** Payload hash, destination, declared transform, and a separate
-   classification digest are all hashed together into `bindingHash`.
-   Changing any of them after minting — including editing the token file by
-   hand — makes redemption fail with `StrixDatasetExportTokenBindingMismatch`.
-   Tokens are single-use (`redeem_execution_token` marks the file
-   `REDEEMED`) and time-limited (default 300s TTL).
+   against, and the token record is itself signed.** Payload hash,
+   destination, declared transform, and a separate classification digest are
+   hashed together into `bindingHash`; changing any of them makes redemption
+   fail with `StrixDatasetExportTokenBindingMismatch`.
+
+   `bindingHash` covers the *request*, not the record, so the record carries
+   its own Ed25519 signature over every field — including `status`,
+   `expiresAt` and `tokenId`. Those two are what make the token single-use
+   (`redeem_execution_token` marks the file `REDEEMED`, then **re-signs** it)
+   and time-limited (default 300s TTL); without a signature over them,
+   resetting `status` to `MINTED` or pushing `expiresAt` into the future would
+   defeat both by editing text in a local file. Redemption verifies the
+   signature **before** it believes any field, and refuses an unsigned token,
+   an unknown signing key, or a broken signature with
+   `StrixDatasetExportTokenSignatureInvalid`.
+
+   Single-use holds under concurrency, not just in sequence. The read of
+   `status`, the check, and the write are one critical section held under an
+   exclusive OS-level lock on a sidecar `.lock` file. Without it, two
+   simultaneous redemptions could both read `MINTED`, both pass the check, and
+   both proceed — measured at two successful redemptions out of sixteen
+   concurrent attempts on one token. A signature does not help there: both
+   readers see a legitimately signed record.
+
+   Trust scope, stated precisely: this makes the record tamper-**evident**
+   against anything that cannot sign with this project's local key. It is not
+   a defence against someone who holds that key — it lives under
+   `<state_dir>/keys/` on the same machine. That is the same
+   `LOCAL_MACHINE_ASSERTION` boundary the rest of Local Mode declares, not a
+   stronger one.
 5. **`safe-harbor-v1` is a declared TEST transform, not a certification.**
    It masks this fixture's two direct identifiers (`mrn`, `dob`) on PHI rows.
    It does not implement, certify, or claim conformance with the HIPAA Safe
@@ -72,7 +96,8 @@ rows, destination, requester
 3. mint_execution_token()     -- bound to payload+destination+transform+classification, TTL
         |
         v
-4. redeem_execution_token()   -- binding must still match; single-use -> STOP if missing/expired/replayed/tampered
+4. redeem_execution_token()   -- signature verified, then binding; single-use under an
+                                 exclusive lock -> STOP if missing/expired/replayed/tampered
         |
         v
 5. apply declared transform   -- only if policy marked the export deidentified
@@ -93,6 +118,7 @@ rows, destination, requester
 - `StrixDatasetExportTokenExpired` — redeeming past the token's TTL.
 - `StrixDatasetExportTokenAlreadyRedeemed` — replaying a spent token.
 - `StrixDatasetExportTokenBindingMismatch` — payload, destination, transform, or classification changed since minting.
+- `StrixDatasetExportTokenSignatureInvalid` — the token record itself was edited after minting (its signature covers `status`, `expiresAt` and `tokenId`, which `bindingHash` does not), or it is unsigned, or signed by a key absent from the local registry.
 - `StrixDatasetExportKeyError` — the local Ed25519 signing key is missing, corrupt, or `cryptography` isn't installed.
 - `StrixDatasetExportReceiptPersistenceError` — the export ran but the receipt couldn't be written durably.
 

@@ -69,6 +69,7 @@ import os
 import stat
 import uuid
 import warnings
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -160,6 +161,13 @@ class StrixDatasetExportTokenExpired(StrixDatasetExportError):
 
 class StrixDatasetExportTokenAlreadyRedeemed(StrixDatasetExportError):
     """The execution token was already consumed once (single-use, replay refused)."""
+
+
+class StrixDatasetExportTokenSignatureInvalid(StrixDatasetExportError):
+    """The execution token's own signature does not verify, so the record was
+    edited after minting. Raised before ``status`` or ``expiresAt`` are trusted,
+    since those two fields carry the single-use and time-limit properties and are
+    otherwise just text in a local file."""
 
 
 class StrixDatasetExportTokenBindingMismatch(StrixDatasetExportError):
@@ -653,6 +661,98 @@ def _token_path(state_dir: Path, token_id: str) -> Path:
     return state_dir / "dataset-export" / "tokens" / f"{token_id}.json"
 
 
+@contextmanager
+def _token_lock(state_dir: Path, token_id: str):
+    """Serialise the whole read-check-write of one token's redemption.
+
+    Single-use was previously enforced by reading ``status``, checking it, then
+    writing — three steps with no mutual exclusion. Two concurrent redemptions
+    could both read ``MINTED``, both pass the check, and both proceed: the token
+    is spent twice and the second export runs unauthorised. A signature does not
+    help, because both readers see a legitimately signed record.
+
+    The lock is taken on a sidecar ``.lock`` file, never on the record itself, so
+    the record can be rewritten while the lock is held. OS-level locks are
+    released when the descriptor closes or the process dies, so an interrupted
+    redemption cannot leave a token permanently stuck — which a marker-file
+    mutex would.
+
+    Best-effort by design: if neither `fcntl` nor `msvcrt` is available the body
+    still runs. Serialising is a correctness improvement where the platform
+    supports it, and this helper is copied into customer trees of unknown shape;
+    refusing to redeem at all on an exotic platform would be the worse failure.
+    """
+
+    lock_path = _token_path(state_dir, token_id).with_suffix(".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_path), os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        try:
+            import fcntl
+
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        except ImportError:  # pragma: no cover - non-POSIX
+            try:
+                import msvcrt
+
+                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+            except (ImportError, OSError):  # pragma: no cover
+                pass
+        yield
+    finally:
+        os.close(fd)
+
+
+def _token_signing_payload(record: Mapping[str, Any]) -> dict[str, Any]:
+    """Everything in the token record except its own signature.
+
+    Deliberately the whole record rather than a chosen subset: ``bindingHash``
+    already covers the request, but ``status``, ``expiresAt``, ``tokenId`` and
+    ``signingKeyId`` are what carry single-use, the time limit, and identity.
+    Signing the record wholesale means a new field cannot be added later that
+    silently sits outside the protected set.
+    """
+
+    return {k: v for k, v in record.items() if k != "signature"}
+
+
+def _sign_token_record(record: Mapping[str, Any], key: LocalSigningKey) -> str:
+    Ed25519PrivateKey, _ = _require_cryptography()
+    priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(key.private_key_hex))
+    return priv.sign(_canonicalize(_token_signing_payload(record))).hex()
+
+
+def _verify_token_record(record: Mapping[str, Any], state_dir: Path, token_id: str) -> None:
+    """Fail closed: a token with no signature, an unknown key, or a signature
+    that does not verify is refused before any of its fields are believed."""
+
+    signature_hex = record.get("signature")
+    kid = record.get("signingKeyId")
+    if not signature_hex or not kid:
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} carries no signature — an unsigned token record "
+            "cannot be trusted about its own status or expiry"
+        )
+    pub_bytes = resolve_public_key(state_dir, kid)
+    if pub_bytes is None:
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} is signed by unknown key {kid!r} — not in this "
+            "project's local key registry"
+        )
+    try:
+        _, Ed25519PublicKey = _require_cryptography()
+        Ed25519PublicKey.from_public_bytes(pub_bytes).verify(
+            bytes.fromhex(signature_hex), _canonicalize(_token_signing_payload(record))
+        )
+    except StrixDatasetExportError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - any failure means "do not trust this record"
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} signature does not verify — the record was edited "
+            "after it was minted (status, expiry, and binding are all covered)"
+        ) from exc
+
+
 def mint_execution_token(
     *,
     payload_hash: str,
@@ -675,13 +775,19 @@ def mint_execution_token(
         transform_version=transform_version,
         classification_digest=classification_digest,
     )
+    key = generate_or_load_key(state_dir)
     record = {
         "tokenId": token_id,
         "status": "MINTED",
         "issuedAt": _iso_from(issued_at),
         "expiresAt": _iso_from(expires_at),
         "bindingHash": binding_hash,
+        "signingKeyId": key.kid,
     }
+    # Sign the record itself, not just the request it is bound to. bindingHash
+    # already ties the token to the payload/destination/transform; the signature
+    # is what makes status and expiresAt tamper-evident too.
+    record["signature"] = _sign_token_record(record, key)
     path = _token_path(state_dir, token_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -712,16 +818,60 @@ def redeem_execution_token(
     if not path.exists():
         raise StrixDatasetExportTokenMissing(f"no execution token found for token_id {token_id!r}")
 
+    # Everything from here to the status write is one critical section. Holding
+    # the lock across the read AND the write is what makes single-use hold under
+    # concurrency; checking then writing without it is a race, not a guarantee.
+    with _token_lock(state_dir, token_id):
+        return _redeem_locked(
+            token_id,
+            path=path,
+            payload_hash=payload_hash,
+            destination_visibility=destination_visibility,
+            destination_id=destination_id,
+            transform_name=transform_name,
+            transform_version=transform_version,
+            classification_digest=classification_digest,
+            state_dir=state_dir,
+            now=now,
+        )
+
+
+def _redeem_locked(
+    token_id: str,
+    *,
+    path: Path,
+    payload_hash: str,
+    destination_visibility: str,
+    destination_id: str,
+    transform_name: str | None,
+    transform_version: int | None,
+    classification_digest: str,
+    state_dir: Path,
+    now: datetime,
+) -> None:
+    """The body of :func:`redeem_execution_token`, run under the token lock.
+    Re-reads the record inside the lock — a copy read before acquiring it could
+    already be stale."""
+
     try:
         record = json.loads(path.read_text(encoding="utf-8"))
     except ValueError as exc:
         raise StrixDatasetExportTokenMissing(f"execution token file for {token_id!r} is corrupt: {exc}") from exc
+
+    # Before anything in the record is believed. status and expiresAt are the two
+    # fields that carry single-use and the time limit, and bindingHash does not
+    # cover them — only this signature does.
+    _verify_token_record(record, state_dir, token_id)
 
     if record.get("status") == "REDEEMED":
         raise StrixDatasetExportTokenAlreadyRedeemed(
             f"execution token {token_id!r} has already been redeemed — single-use, replay refused"
         )
 
+    if "expiresAt" not in record:
+        raise StrixDatasetExportTokenMissing(
+            f"execution token file for {token_id!r} has no expiresAt field; it is not a usable token"
+        )
     expires_at = _parse_iso(record["expiresAt"])
     if now > expires_at:
         raise StrixDatasetExportTokenExpired(f"execution token {token_id!r} expired at {record['expiresAt']}")
@@ -743,6 +893,9 @@ def redeem_execution_token(
 
     record["status"] = "REDEEMED"
     record["redeemedAt"] = _iso_now()
+    # Re-sign: the record changed, so the old signature must not keep verifying.
+    # Without this, resetting status to MINTED would restore a valid signature.
+    record["signature"] = _sign_token_record(record, generate_or_load_key(state_dir))
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
@@ -769,9 +922,42 @@ class MerkleTree:
     row_order: list[str] = field(repr=False)
 
 
+#: Domain tag folded into the root. Bumped when the construction changes, so a
+#: root computed by an older layout can never be mistaken for a current one.
+MERKLE_DOMAIN = "strix.dataset-export.merkle.v2"
+
+
+def _merkle_root(tree_root: str, leaf_count: int) -> str:
+    """Bind the leaf count and a domain tag into the published root.
+
+    Without the count, the root commits only to the *contents* of the tree, not
+    to how many rows there were — so a caller could assert any
+    ``totalRowCountCommitted`` it liked and nothing would contradict it. With
+    the count bound in, that field is self-verifying: claim the wrong number and
+    the recomputed root does not match.
+    """
+
+    return _hash_canonical({"merkleDomain": MERKLE_DOMAIN, "leafCount": leaf_count, "treeRoot": tree_root})
+
+
 def build_merkle_tree(rows: Sequence[Mapping[str, Any]]) -> MerkleTree:
     if not rows:
         raise ValueError("cannot build a Merkle tree over zero rows")
+
+    # Duplicate row ids are refused rather than tolerated. Two rows sharing an
+    # id make an inclusion proof ambiguous — `merkle_inclusion_proof` resolves a
+    # row_id to a single index, so a proof for the duplicate id silently attests
+    # only one of them and reads as false for the other. Refusing at
+    # construction removes the ambiguity instead of documenting it.
+    ids = [row["row_id"] for row in rows]
+    duplicates = sorted({row_id for row_id in ids if ids.count(row_id) > 1})
+    if duplicates:
+        raise ValueError(
+            "cannot build a Merkle tree over rows with duplicate row_id(s): "
+            + ", ".join(repr(d) for d in duplicates)
+            + " — an inclusion proof for a duplicated id would be ambiguous"
+        )
+
     ordered = sorted(rows, key=lambda row: row["row_id"])
     row_order = [row["row_id"] for row in ordered]
     leaves = [_leaf_hash(row) for row in ordered]
@@ -780,12 +966,20 @@ def build_merkle_tree(rows: Sequence[Mapping[str, Any]]) -> MerkleTree:
     while len(current) > 1:
         nxt = []
         for i in range(0, len(current), 2):
-            left = current[i]
-            right = current[i + 1] if i + 1 < len(current) else current[i]
-            nxt.append(_hash_canonical({"left": left, "right": right}))
+            if i + 1 < len(current):
+                nxt.append(_hash_canonical({"left": current[i], "right": current[i + 1]}))
+            else:
+                # PROMOTE the odd node unchanged rather than hashing it with
+                # itself. Duplicating it made an odd tree collide with the even
+                # tree that really did contain the repeat: [a,b,c] hashed to the
+                # same root as [a,b,c,c]. Promotion (as in RFC 6962) has no such
+                # pair, and leaf/internal domain separation — leaves key on
+                # rowId/classification/fieldsHash, internal nodes on left/right —
+                # stops a promoted internal hash being replayed as a leaf.
+                nxt.append(current[i])
         levels.append(nxt)
         current = nxt
-    return MerkleTree(root=current[0], levels=levels, row_order=row_order)
+    return MerkleTree(root=_merkle_root(current[0], len(leaves)), levels=levels, row_order=row_order)
 
 
 def merkle_inclusion_proof(tree: MerkleTree, row_id: str) -> list[dict[str, str]]:
@@ -794,14 +988,14 @@ def merkle_inclusion_proof(tree: MerkleTree, row_id: str) -> list[dict[str, str]
     index = tree.row_order.index(row_id)
     proof: list[dict[str, str]] = []
     for level in tree.levels[:-1]:
-        is_right = index % 2 == 1
-        if is_right:
-            sibling_index = index - 1
-            position = "left"
-        else:
-            sibling_index = index + 1 if index + 1 < len(level) else index
-            position = "right"
-        proof.append({"position": position, "hash": level[sibling_index]})
+        if index % 2 == 1:
+            proof.append({"position": "left", "hash": level[index - 1]})
+        elif index + 1 < len(level):
+            proof.append({"position": "right", "hash": level[index + 1]})
+        # else: this node was promoted, not paired — it has no sibling, so the
+        # path records no step for this level. Emitting a self-sibling here is
+        # what the duplicating construction did, and it is exactly the ambiguity
+        # that made two different row sets share a root.
         index //= 2
     return proof
 
@@ -809,15 +1003,42 @@ def merkle_inclusion_proof(tree: MerkleTree, row_id: str) -> list[dict[str, str]
 def _apply_proof(leaf_hash: str, proof: Sequence[Mapping[str, str]]) -> str:
     current = leaf_hash
     for step in proof:
-        if step["position"] == "left":
-            current = _hash_canonical({"left": step["hash"], "right": current})
+        # Steps come from whoever supplied the proof, so shape is not assumed.
+        if not isinstance(step, Mapping):
+            raise ValueError(f"invalid Merkle proof step {step!r}; expected a mapping")
+        position = step.get("position")
+        sibling = step.get("hash")
+        # Strict: an unrecognised position used to fall through to the "right"
+        # branch, so a malformed or hostile proof was silently reinterpreted
+        # rather than rejected.
+        if position == "left":
+            current = _hash_canonical({"left": sibling, "right": current})
+        elif position == "right":
+            current = _hash_canonical({"left": current, "right": sibling})
         else:
-            current = _hash_canonical({"left": current, "right": step["hash"]})
+            raise ValueError(f"invalid Merkle proof step position {position!r}; expected 'left' or 'right'")
     return current
 
 
-def verify_merkle_inclusion(row: Mapping[str, Any], proof: Sequence[Mapping[str, str]], root: str) -> bool:
-    return _apply_proof(_leaf_hash(row), proof) == root
+def verify_merkle_inclusion(
+    row: Mapping[str, Any], proof: Sequence[Mapping[str, str]], root: str, leaf_count: int
+) -> bool:
+    """``leaf_count`` is required, not optional: the published root binds it, so
+    verification cannot be performed without committing to a row count. A caller
+    that supplies the wrong count gets ``False`` rather than a pass."""
+
+    if isinstance(proof, (str, bytes)) or not isinstance(proof, Sequence):
+        return False
+    try:
+        computed = _apply_proof(_leaf_hash(row), proof)
+    except (ValueError, KeyError, TypeError, AttributeError):
+        # A hostile or malformed proof is a failed verification, never an
+        # exception escaping to the caller — the caller is deciding whether to
+        # believe a disclosure, and a crash is not an answer.
+        return False
+    if not isinstance(leaf_count, int) or isinstance(leaf_count, bool) or leaf_count < 1:
+        return False
+    return _merkle_root(computed, leaf_count) == root
 
 
 _COMPLETENESS_DISCLAIMER = (
@@ -859,11 +1080,16 @@ def verify_selective_disclosure(disclosure: Mapping[str, Any], expected_root: st
             "allVerified": False,
             "completeness_claim": _COMPLETENESS_DISCLAIMER,
         }
+    # The count is bound into the root, so a lie here fails verification rather
+    # than going unchallenged.
+    committed_count = disclosure.get("totalRowCountCommitted")
     results = {}
     for row in disclosure.get("disclosedRows", []):
         row_id = row["row_id"]
         proof = disclosure.get("proofs", {}).get(row_id)
-        results[row_id] = bool(proof) and verify_merkle_inclusion(row, proof, expected_root)
+        results[row_id] = proof is not None and verify_merkle_inclusion(
+            row, proof, expected_root, committed_count
+        )
     return {
         "rootMatches": True,
         "rowsVerified": results,
