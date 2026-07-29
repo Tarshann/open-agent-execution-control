@@ -65,22 +65,22 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `234 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `201 passed, 33 skipped` |
+| **As run here** (cffi installed) | `270 passed` · 0 skipped |
+| **Fresh clone of this image** (no cffi) | `231 passed, 39 skipped` |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
 
 ### The signing-dependent tests
 
-33 tests need a working Ed25519 backend and skip without one — 14% of the suite:
+39 tests need a working Ed25519 backend and skip without one — 14% of the suite:
 
 | Suite | Skipped | What stops being proven |
 |---|---|---|
 | `strix-wire` | 2 | The **granted** branch of the approval gate — the path that signs a receipt. Refusal without an explicit boolean is still proven. |
-| `strix-dataset-export` | 31 | Receipt tampering detection, offline chain verification, self-approval refusal, the adapter-never-invoked denial paths, and the whole token lifecycle — i.e. most of the evidence and verifiability claims. |
+| `strix-dataset-export` | 37 | Receipt tampering detection, offline chain verification, self-approval refusal, the adapter-never-invoked denial paths, and the whole token lifecycle — i.e. most of the evidence and verifiability claims. |
 
-Worth stating plainly: 31 of `strix-dataset-export`'s 52 tests (60%) do not run in
+Worth stating plainly: 37 of `strix-dataset-export`'s 88 tests (42%) do not run in
 a clean checkout, and they include the ones that substantiate its
 independent-verifiability claims. **Install `requirements-test.txt` before treating
 that suite's green result as meaningful.**
@@ -118,8 +118,8 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
 | `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
-| `strix-dataset-export/tests/` (18 files) | 52 | Policy-before-execution, token binding/replay/expiry, **token record signing**, receipt tampering, offline chain verification, Merkle inclusion, doc drift |
-| **Total** | **234** | |
+| `strix-dataset-export/tests/` (19 files) | 88 | Policy-before-execution, token binding/replay/expiry, token record signing, **concurrent-redemption atomicity**, **Merkle construction**, receipt tampering, offline chain verification, doc drift |
+| **Total** | **270** | |
 
 ## Discrimination evidence
 
@@ -137,6 +137,11 @@ fix on this branch was checked against the prior commit:
 | Directory-symlink completeness | Reverted the `unscanned_subtrees` STOP clause | 2 failed |
 | `strix-dataset-export` (#8), 8 guards | Mutated each guard in turn — see the review section below | 8/8 caught |
 | Token record signing (Finding 1 fix) | Removed the verification call; removed the re-sign after status flip | 6 failed; 4 failed |
+| Merkle: duplicate-id refusal (Finding 2) | Disabled the duplicate check | 3 failed |
+| Merkle: odd-node promotion (Finding 2) | Reverted to hashing the odd node with itself | 5 failed |
+| Merkle: leaf count bound (Finding 2) | Returned the bare pairwise root | 3 failed |
+| Merkle: strict proof positions (Finding 2) | Reinstated the silent fall-through to "right" | 1 failed |
+| Redemption atomicity (Finding 3) | Disabled the token lock | 4 failed |
 
 Reproducing the worktree method:
 
@@ -254,7 +259,12 @@ against someone holding that key, which lives under `<state_dir>/keys/` on the
 same machine — the same `LOCAL_MACHINE_ASSERTION` boundary the rest of Local Mode
 declares, not a stronger one. `SKILL.md` says this in the same words.
 
-### Finding 2 — Merkle odd-leaf duplication collides (low)
+### Finding 2 — Merkle odd-leaf duplication collides (low) — **RESOLVED**
+
+> Fixed in this branch, and the investigation found two further defects in the
+> same primitive. Original finding retained below, followed by what was actually
+> wrong and what was done.
+
 
 `build_merkle_tree` duplicates the final node on an odd count, so `[a,b,c]` and
 `[a,b,c,c]` produce an identical root — confirmed by experiment. This does **not**
@@ -262,17 +272,68 @@ violate any current claim: the skill disclaims completeness everywhere and every
 receipt carries `completeness: "NOT_PROVEN"`, and membership proofs remain sound.
 It matters as a constraint on the future: the root is not a reliable commitment to
 the multiset of rows, so no completeness or row-count claim may ever be built on
-it without changing the construction (length-prefixing, or domain-separating the
-odd node).
+it without changing the construction.
 
-### Finding 3 — token redemption is not atomic (low)
+**What was actually wrong.** Investigating it turned up two more defects, and
+reordered which one mattered most:
 
-`redeem_execution_token` reads the file, checks `status`, then writes. Two
-concurrent redemptions can both pass the check before either writes. Low impact
-for a single-machine local helper, but "can never be redeemed again" holds only
-single-threaded.
+1. **Duplicate `row_id`s were accepted** — and this is the load-bearing defect.
+   `merkle_inclusion_proof()` resolves a `row_id` to a single index, so a proof
+   for a duplicated id attested only the first copy and read as *false* for the
+   second. It is also what made the collision reachable: `[a,b,c,c]` requires a
+   duplicate id. Refusing duplicates fixes the proof ambiguity and makes the
+   demonstrated collision unconstructible.
+2. **The odd node was hashed with itself** rather than promoted. With duplicates
+   refused this is no longer exploitable, so promotion is defence in depth — the
+   root no longer depends on the duplicate check staying in place. It remains
+   directly observable: a duplicating build emits a proof step whose sibling is
+   the node's own leaf hash; a promoting build emits no step for that level. That
+   signature is what the regression test pins, because the collision itself can
+   no longer be built.
+3. **The leaf count was not bound into the root**, so `totalRowCountCommitted` in
+   a disclosure was pure assertion. It is now folded into the published root with
+   a versioned domain tag, and `verify_merkle_inclusion()` requires the count —
+   verification cannot be done without committing to a row number.
 
-### Finding 4 — corrupt-token handling is uneven (nit)
+Plus a hardening found while testing: `_apply_proof` treated any unrecognised
+`position` as `"right"`, silently reinterpreting a hostile proof; and a non-mapping
+proof step raised `AttributeError` out of `verify_merkle_inclusion` instead of
+returning `False`. Both are now refusals.
+
+**Not claimed.** Membership proofs were sound before and remain sound. None of
+this makes the root a completeness proof — completeness is still `NOT_PROVEN`, and
+that disclaimer survives a failed verification (tested).
+
+### Finding 3 — token redemption is not atomic (low) — **RESOLVED**
+
+
+`redeem_execution_token` read the file, checked `status`, then wrote — three steps
+with no mutual exclusion, so two concurrent redemptions could both read `MINTED`,
+both pass the check, and both proceed. Signing the record does not help: both
+readers see a legitimately signed token.
+
+**Measured, not theorised.** Sixteen concurrent processes against one token:
+
+| Build | Successful redemptions |
+|---|---|
+| Before | **2** — the token was spent twice |
+| After | 1, with 15 clean `TokenAlreadyRedeemed` |
+
+**Resolution.** The whole read-check-write runs under an exclusive OS-level lock
+(`fcntl.flock`, `msvcrt.locking` on Windows) taken on a sidecar `.lock` file — not
+on the record, so the record can be rewritten while the lock is held. OS locks
+release when the descriptor closes or the process dies, so an interrupted
+redemption cannot wedge a token, which a marker-file mutex would. If neither
+locking module is available the body still runs: serialising is an improvement
+where the platform supports it, and refusing to redeem at all on an exotic
+platform would be the worse failure.
+
+Two tests, because a concurrency test alone is a weak guard: one deterministic
+(holding the lock excludes a second process, probed non-blocking), one under real
+contention across three rounds. Disabling the lock fails four of them.
+
+### Finding 4 — corrupt-token handling is uneven (nit) — **RESOLVED**
+
 
 A token file that parses but lacks `expiresAt` raises `KeyError` rather than a
 `StrixDatasetExport*` exception. Malformed JSON is handled; a missing key is not.

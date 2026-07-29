@@ -56,6 +56,14 @@ list of non-claims.
    an unknown signing key, or a broken signature with
    `StrixDatasetExportTokenSignatureInvalid`.
 
+   Single-use holds under concurrency, not just in sequence. The read of
+   `status`, the check, and the write are one critical section held under an
+   exclusive OS-level lock on a sidecar `.lock` file. Without it, two
+   simultaneous redemptions could both read `MINTED`, both pass the check, and
+   both proceed — measured at two successful redemptions out of sixteen
+   concurrent attempts on one token. A signature does not help there: both
+   readers see a legitimately signed record.
+
    Trust scope, stated precisely: this makes the record tamper-**evident**
    against anything that cannot sign with this project's local key. It is not
    a defence against someone who holds that key — it lives under
@@ -88,7 +96,8 @@ rows, destination, requester
 3. mint_execution_token()     -- bound to payload+destination+transform+classification, TTL
         |
         v
-4. redeem_execution_token()   -- binding must still match; single-use -> STOP if missing/expired/replayed/tampered
+4. redeem_execution_token()   -- signature verified, then binding; single-use under an
+                                 exclusive lock -> STOP if missing/expired/replayed/tampered
         |
         v
 5. apply declared transform   -- only if policy marked the export deidentified
