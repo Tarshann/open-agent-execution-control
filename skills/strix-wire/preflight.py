@@ -21,7 +21,10 @@ Contract (pinned by tests/test_strix_wire_preflight.py):
     the loose skill file AND vendored into the strix-personal plugin.
   - verdict "STOP" when governed OR production markers are found; "OK" otherwise.
   - exit code 3 on STOP, 0 on OK, 2 on bad invocation. Fail CLOSED: an
-    unreadable root or a scan error resolves to STOP, never a silent OK.
+    unreadable root, an unreadable FILE, or a scan error resolves to STOP,
+    never a silent OK. A file that could not be read was never checked for
+    markers, so it makes the scan incomplete (``unreadableFiles``) — "we
+    didn't finish looking" is never reported as "we looked and it's clean".
   - scope containment: no directory symlink is followed and no file symlink
     leaving the root is read, so a marker "found" is always this repo's own.
     Skipped links appear in ``symlinksSkipped`` rather than vanishing.
@@ -121,6 +124,7 @@ def scan(root: Path) -> dict:
     files_scanned = 0
     truncated = False
     links_skipped: list[dict] = []
+    unreadable_files: list[str] = []
     visited_dirs: set[tuple[int, int]] = set()
 
     def add(marker: str, kind: str, path: str) -> None:
@@ -151,10 +155,15 @@ def scan(root: Path) -> dict:
             except (PermissionError, OSError):
                 continue
             for entry in entries:
-                is_link = entry.is_symlink()
                 try:
+                    is_link = entry.is_symlink()
                     is_dir = entry.is_dir()
+                    is_file = entry.is_file()
                 except OSError:
+                    # We cannot even classify this entry, so it was never
+                    # examined for markers. Skipping it silently would fail
+                    # OPEN; record it so the verdict reflects the gap.
+                    unreadable_files.append(rel(entry))
                     continue
                 if is_dir:
                     if entry.name in _SKIP_DIRS:
@@ -177,7 +186,7 @@ def scan(root: Path) -> dict:
                         visited_dirs.add(identity)
                     stack.append(entry)
                     continue
-                if not entry.is_file():
+                if not is_file:
                     continue
                 name = entry.name
                 # filename markers (cheap, no read). The NAME is in-root
@@ -197,6 +206,9 @@ def scan(root: Path) -> dict:
                     if entry.stat().st_size > _MAX_BYTES:
                         continue
                 except OSError:
+                    # Cannot even size the file, so it was never examined for
+                    # markers. Silently skipping it would fail OPEN.
+                    unreadable_files.append(rel(entry))
                     continue
                 files_scanned += 1
                 if files_scanned > _MAX_FILES:
@@ -205,6 +217,10 @@ def scan(root: Path) -> dict:
                 try:
                     text = entry.read_text(encoding="utf-8", errors="ignore")
                 except (OSError, ValueError):
+                    # A file we could not read is a file we did not check. It
+                    # may be exactly the one holding a governance or production
+                    # marker, so it makes the scan incomplete rather than clean.
+                    unreadable_files.append(rel(entry))
                     continue
                 for rx, label, kind in _PATTERNS:
                     if rx.search(text):
@@ -224,24 +240,39 @@ def scan(root: Path) -> dict:
             "filesScanned": files_scanned,
             "truncated": truncated,
             "symlinksSkipped": links_skipped,
+            "unreadableFiles": unreadable_files,
         }
 
     governed = any(m["kind"] == "governed" for m in markers)
     production = any(m["kind"] == "production" for m in markers)
-    stop = governed or production
+    # An incomplete scan is not a clean scan: files we could not read were
+    # never checked for markers, so the guard cannot certify this repo.
+    stop = governed or production or bool(unreadable_files)
     return {
         "verdict": "STOP" if stop else "OK",
         "governed": governed,
         "production": production,
         "markers": markers,
-        "reason": _reason(governed, production),
+        "reason": _reason(governed, production, unreadable_files),
         "filesScanned": files_scanned,
         "truncated": truncated,
         "symlinksSkipped": links_skipped,
+        "unreadableFiles": unreadable_files,
     }
 
 
-def _reason(governed: bool, production: bool) -> str:
+def _reason(
+    governed: bool, production: bool, unreadable: list[str] | None = None
+) -> str:
+    if unreadable and not (governed or production):
+        shown = ", ".join(unreadable[:3])
+        more = f" (+{len(unreadable) - 3} more)" if len(unreadable) > 3 else ""
+        return (
+            f"{len(unreadable)} file(s) under the root could not be read "
+            f"({shown}{more}); a file that was never examined may hold the "
+            "governance or production marker this guard exists to find — "
+            "failing closed rather than reporting a clean scan."
+        )
     if governed and production:
         return ("This repo already has first-party Strix governance AND shows "
                 "production markers. strix-wire is a quickstart for ungoverned "
