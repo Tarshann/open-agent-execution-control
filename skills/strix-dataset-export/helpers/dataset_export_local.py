@@ -162,6 +162,13 @@ class StrixDatasetExportTokenAlreadyRedeemed(StrixDatasetExportError):
     """The execution token was already consumed once (single-use, replay refused)."""
 
 
+class StrixDatasetExportTokenSignatureInvalid(StrixDatasetExportError):
+    """The execution token's own signature does not verify, so the record was
+    edited after minting. Raised before ``status`` or ``expiresAt`` are trusted,
+    since those two fields carry the single-use and time-limit properties and are
+    otherwise just text in a local file."""
+
+
 class StrixDatasetExportTokenBindingMismatch(StrixDatasetExportError):
     """The payload, destination, transform, or classification bound into the
     token no longer matches what's being redeemed against — the token file
@@ -653,6 +660,56 @@ def _token_path(state_dir: Path, token_id: str) -> Path:
     return state_dir / "dataset-export" / "tokens" / f"{token_id}.json"
 
 
+def _token_signing_payload(record: Mapping[str, Any]) -> dict[str, Any]:
+    """Everything in the token record except its own signature.
+
+    Deliberately the whole record rather than a chosen subset: ``bindingHash``
+    already covers the request, but ``status``, ``expiresAt``, ``tokenId`` and
+    ``signingKeyId`` are what carry single-use, the time limit, and identity.
+    Signing the record wholesale means a new field cannot be added later that
+    silently sits outside the protected set.
+    """
+
+    return {k: v for k, v in record.items() if k != "signature"}
+
+
+def _sign_token_record(record: Mapping[str, Any], key: LocalSigningKey) -> str:
+    Ed25519PrivateKey, _ = _require_cryptography()
+    priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(key.private_key_hex))
+    return priv.sign(_canonicalize(_token_signing_payload(record))).hex()
+
+
+def _verify_token_record(record: Mapping[str, Any], state_dir: Path, token_id: str) -> None:
+    """Fail closed: a token with no signature, an unknown key, or a signature
+    that does not verify is refused before any of its fields are believed."""
+
+    signature_hex = record.get("signature")
+    kid = record.get("signingKeyId")
+    if not signature_hex or not kid:
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} carries no signature — an unsigned token record "
+            "cannot be trusted about its own status or expiry"
+        )
+    pub_bytes = resolve_public_key(state_dir, kid)
+    if pub_bytes is None:
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} is signed by unknown key {kid!r} — not in this "
+            "project's local key registry"
+        )
+    try:
+        _, Ed25519PublicKey = _require_cryptography()
+        Ed25519PublicKey.from_public_bytes(pub_bytes).verify(
+            bytes.fromhex(signature_hex), _canonicalize(_token_signing_payload(record))
+        )
+    except StrixDatasetExportError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - any failure means "do not trust this record"
+        raise StrixDatasetExportTokenSignatureInvalid(
+            f"execution token {token_id!r} signature does not verify — the record was edited "
+            "after it was minted (status, expiry, and binding are all covered)"
+        ) from exc
+
+
 def mint_execution_token(
     *,
     payload_hash: str,
@@ -675,13 +732,19 @@ def mint_execution_token(
         transform_version=transform_version,
         classification_digest=classification_digest,
     )
+    key = generate_or_load_key(state_dir)
     record = {
         "tokenId": token_id,
         "status": "MINTED",
         "issuedAt": _iso_from(issued_at),
         "expiresAt": _iso_from(expires_at),
         "bindingHash": binding_hash,
+        "signingKeyId": key.kid,
     }
+    # Sign the record itself, not just the request it is bound to. bindingHash
+    # already ties the token to the payload/destination/transform; the signature
+    # is what makes status and expiresAt tamper-evident too.
+    record["signature"] = _sign_token_record(record, key)
     path = _token_path(state_dir, token_id)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -717,11 +780,20 @@ def redeem_execution_token(
     except ValueError as exc:
         raise StrixDatasetExportTokenMissing(f"execution token file for {token_id!r} is corrupt: {exc}") from exc
 
+    # Before anything in the record is believed. status and expiresAt are the two
+    # fields that carry single-use and the time limit, and bindingHash does not
+    # cover them — only this signature does.
+    _verify_token_record(record, state_dir, token_id)
+
     if record.get("status") == "REDEEMED":
         raise StrixDatasetExportTokenAlreadyRedeemed(
             f"execution token {token_id!r} has already been redeemed — single-use, replay refused"
         )
 
+    if "expiresAt" not in record:
+        raise StrixDatasetExportTokenMissing(
+            f"execution token file for {token_id!r} has no expiresAt field; it is not a usable token"
+        )
     expires_at = _parse_iso(record["expiresAt"])
     if now > expires_at:
         raise StrixDatasetExportTokenExpired(f"execution token {token_id!r} expired at {record['expiresAt']}")
@@ -743,6 +815,9 @@ def redeem_execution_token(
 
     record["status"] = "REDEEMED"
     record["redeemedAt"] = _iso_now()
+    # Re-sign: the record changed, so the old signature must not keep verifying.
+    # Without this, resetting status to MINTED would restore a valid signature.
+    record["signature"] = _sign_token_record(record, generate_or_load_key(state_dir))
     path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 

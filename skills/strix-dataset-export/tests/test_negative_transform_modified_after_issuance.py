@@ -6,7 +6,13 @@ from __future__ import annotations
 
 import pytest
 
+from conftest import requires_signing
 
+# Minting now signs the token record, so these need the Ed25519 backend.
+# Before the record was signed, minting was pure JSON and they ran anywhere.
+
+
+@requires_signing
 def test_declaring_a_transform_after_issuance_invalidates_the_token(core_mod, tmp_path):
     state_dir = tmp_path / ".strix"
     token = core_mod.mint_execution_token(
@@ -32,6 +38,7 @@ def test_declaring_a_transform_after_issuance_invalidates_the_token(core_mod, tm
         )
 
 
+@requires_signing
 def test_bumping_the_transform_version_after_issuance_invalidates_the_token(core_mod, tmp_path):
     state_dir = tmp_path / ".strix"
     token = core_mod.mint_execution_token(

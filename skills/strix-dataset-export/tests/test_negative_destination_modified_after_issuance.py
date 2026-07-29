@@ -7,7 +7,13 @@ from __future__ import annotations
 
 import pytest
 
+from conftest import requires_signing
 
+# Minting now signs the token record, so these need the Ed25519 backend.
+# Before the record was signed, minting was pure JSON and they ran anywhere.
+
+
+@requires_signing
 def test_destination_id_change_after_issuance_invalidates_the_token(core_mod, tmp_path):
     state_dir = tmp_path / ".strix"
     token = core_mod.mint_execution_token(
@@ -33,6 +39,7 @@ def test_destination_id_change_after_issuance_invalidates_the_token(core_mod, tm
         )
 
 
+@requires_signing
 def test_destination_visibility_change_after_issuance_invalidates_the_token(core_mod, tmp_path):
     """Retargeting INTERNAL -> CROSS_PARTY after mint must also be caught —
     visibility is part of the same binding as the destination id."""

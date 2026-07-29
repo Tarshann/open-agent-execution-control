@@ -6,7 +6,13 @@ from __future__ import annotations
 
 import pytest
 
+from conftest import requires_signing
 
+# Minting now signs the token record, so these need the Ed25519 backend.
+# Before the record was signed, minting was pure JSON and they ran anywhere.
+
+
+@requires_signing
 def test_payload_modification_after_issuance_invalidates_the_token(core_mod, tmp_path):
     state_dir = tmp_path / ".strix"
     token = core_mod.mint_execution_token(
@@ -32,6 +38,7 @@ def test_payload_modification_after_issuance_invalidates_the_token(core_mod, tmp
         )
 
 
+@requires_signing
 def test_classification_change_after_issuance_also_invalidates_the_token(core_mod, tmp_path):
     """A row's classification tag can change without touching the rest of
     the payload — the classification digest is bound independently so that

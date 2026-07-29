@@ -65,26 +65,31 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `224 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `209 passed, 15 skipped` |
+| **As run here** (cffi installed) | `234 passed` · 0 skipped |
+| **Fresh clone of this image** (no cffi) | `201 passed, 33 skipped` |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
 
 ### The signing-dependent tests
 
-15 tests need a working Ed25519 backend and skip without one. That is 6.7% of the
-suite, and it grew sharply with #8:
+33 tests need a working Ed25519 backend and skip without one — 14% of the suite:
 
 | Suite | Skipped | What stops being proven |
 |---|---|---|
 | `strix-wire` | 2 | The **granted** branch of the approval gate — the path that signs a receipt. Refusal without an explicit boolean is still proven. |
-| `strix-dataset-export` | 13 | Receipt tampering detection, offline chain verification, self-approval refusal, and the adapter-never-invoked denial paths — i.e. most of the evidence and verifiability claims. |
+| `strix-dataset-export` | 31 | Receipt tampering detection, offline chain verification, self-approval refusal, the adapter-never-invoked denial paths, and the whole token lifecycle — i.e. most of the evidence and verifiability claims. |
 
-Worth stating plainly: 13 of `strix-dataset-export`'s 42 tests (31%) do not run in
+Worth stating plainly: 31 of `strix-dataset-export`'s 52 tests (60%) do not run in
 a clean checkout, and they include the ones that substantiate its
-independent-verifiability claims. Install `requirements-test.txt` before treating
-that suite's green result as meaningful.
+independent-verifiability claims. **Install `requirements-test.txt` before treating
+that suite's green result as meaningful.**
+
+That fraction rose from 31% when the token record became signed: minting now needs
+the key, so the token-lifecycle tests are signing-gated too. The alternative was
+to let minting fall back to an unsigned record, which would have preserved the
+hole the signature exists to close. Failing closed and skipping loudly is the
+better trade, but it is a real cost and worth seeing stated.
 
 `cryptography` does not fail cleanly here: a missing `_cffi_backend` makes the
 Rust binding panic rather than raise `ImportError`, which is why the skip guard
@@ -113,8 +118,8 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
 | `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
-| `strix-dataset-export/tests/` (17 files) | 42 | Policy-before-execution, token binding/replay/expiry, receipt tampering, offline chain verification, Merkle inclusion, doc drift |
-| **Total** | **224** | |
+| `strix-dataset-export/tests/` (18 files) | 52 | Policy-before-execution, token binding/replay/expiry, **token record signing**, receipt tampering, offline chain verification, Merkle inclusion, doc drift |
+| **Total** | **234** | |
 
 ## Discrimination evidence
 
@@ -131,6 +136,7 @@ fix on this branch was checked against the prior commit:
 | Hardened source scans | Injected a spaced `approval_granted = True` into a SKILL.md code block, and a nested write-mode `open()` | Both caught; the previous regex/substring versions missed both |
 | Directory-symlink completeness | Reverted the `unscanned_subtrees` STOP clause | 2 failed |
 | `strix-dataset-export` (#8), 8 guards | Mutated each guard in turn — see the review section below | 8/8 caught |
+| Token record signing (Finding 1 fix) | Removed the verification call; removed the re-sign after status flip | 6 failed; 4 failed |
 
 Reproducing the worktree method:
 
@@ -194,7 +200,13 @@ the code.
   gate lettering best-effort rather than SGRF-conformant, and carries a real
   non-claims section.
 
-### Finding 1 — the execution token is unauthenticated (medium)
+### Finding 1 — the execution token is unauthenticated (medium) — **RESOLVED**
+
+> Fixed in this branch. The token record now carries its own Ed25519 signature
+> over every field, verified before any field is trusted and re-signed when
+> redemption flips `status`. Both demonstrated attacks are refused, and 11
+> regression tests pin it. Original finding and evidence retained below.
+
 
 `_binding_hash` covers the payload hash, destination, transform and
 classification digest. It does **not** cover `status`, `expiresAt` or `tokenId`,
@@ -216,10 +228,31 @@ not, for precisely the two fields carrying the replay and expiry properties, and
 `test_negative_token_replay.py` / `test_negative_expired_token.py` prove those
 only against a non-tampering caller.
 
-Remedy: sign the token record with the key that already exists, or extend the
-binding hash to cover `tokenId` and `expiresAt` and store a MAC alongside. Until
-then the honest claim is "single-use and time-limited against a caller that does
-not edit the token file".
+**Resolution.** `mint_execution_token` now signs the whole record — deliberately
+the whole record rather than a chosen subset, so a field added later cannot
+silently sit outside the protected set. `redeem_execution_token` verifies that
+signature *before* reading `status` or `expiresAt`, and re-signs after the status
+flip, so resetting `status` to `MINTED` cannot restore a valid signature.
+Unsigned records, unknown signing keys and malformed signatures are all refused
+with `StrixDatasetExportTokenSignatureInvalid`.
+
+Re-run of the original experiment after the fix:
+
+| Edit to the token file | Result |
+|---|---|
+| `status: REDEEMED` -> `MINTED` | refused (`TokenSignatureInvalid`) |
+| `expiresAt` -> far future | refused (`TokenSignatureInvalid`) |
+| `tokenId` swapped | refused (`TokenSignatureInvalid`) |
+| signature stripped | refused (`TokenSignatureInvalid`) |
+| signed by an unregistered key | refused (`TokenSignatureInvalid`) |
+| a bound field (destination) | refused (`TokenBindingMismatch`) — the two failures stay distinguishable |
+| untouched token | redeems exactly once, then `TokenAlreadyRedeemed` |
+
+**Trust scope, stated precisely.** This makes the record tamper-*evident* against
+anything that cannot sign with this project's local key. It is not a defence
+against someone holding that key, which lives under `<state_dir>/keys/` on the
+same machine — the same `LOCAL_MACHINE_ASSERTION` boundary the rest of Local Mode
+declares, not a stronger one. `SKILL.md` says this in the same words.
 
 ### Finding 2 — Merkle odd-leaf duplication collides (low)
 
@@ -269,10 +302,7 @@ validated. None are addressed by this manifest.
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
 9. No browser readiness view.
-10. `strix-dataset-export`'s token file is not integrity-protected, so its
-    single-use and expiry properties assume a caller that does not edit it
-    (Finding 1 above).
-11. Verifier **independence is not established by this code.**
+10. Verifier **independence is not established by this code.**
     `EvidenceVerificationResult.verified_by` is an *attribution* field: it
     requires a non-empty name, which prevents an anonymous verdict, but nothing
     checks that the named tool is independent or was actually executed. A caller
