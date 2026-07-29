@@ -1,5 +1,13 @@
 # Strix Open — governance skills (SGRF v1)
 
+> **Scope:** this repository ships two governed-action skills — `/strix-wire`
+> and `/strix-onboard` — and is their distribution source (see "Where these
+> skills come from" below). The three SGRF review lenses
+> (`/runtime-governance-review`, `/govern-pr`, `/release-readiness`) are
+> **not** included here; they live in the separate
+> [Strixgov/skills](https://github.com/Strixgov/skills) marketplace
+> (`/plugin marketplace add Strixgov/skills`) — see "Not in this plugin" below.
+
 The open methodology layer of [Strix](https://www.strixgov.com), an
 execution-control system for AI agents. These are **Claude Code skills** that run
 the **Strix Governance Review Framework (SGRF v1)**: review how any system governs
