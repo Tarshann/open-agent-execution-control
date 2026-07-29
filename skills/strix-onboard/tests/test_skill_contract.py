@@ -142,6 +142,45 @@ def test_the_document_forbids_marking_ready_without_a_verified_proof():
     assert "legitimate, honest terminal state" in FLAT
 
 
+def test_the_skill_carries_an_explicit_non_claims_table():
+    """The scope limits must travel with the skill, not just the review page.
+
+    An agent running this flow reports results to an operator. If the forbidden
+    claims are only in a release document, the agent never sees them.
+    """
+    assert "Never say these things" in SKILL_MD
+    for forbidden in (
+        "onboards clients end to end",
+        "Production tenant isolation is proven",
+        "Anyone can check this signature",
+        "Every action is now governed",
+        "one-time and non-replayable",
+        "No data leaves the machine",
+        "Shell scripts are scanned",
+    ):
+        assert forbidden in SKILL_MD, f"non-claims table lost: {forbidden!r}"
+
+
+def test_the_skill_states_its_own_scope_limits():
+    # Reference model, not the hosted console; and validation is repo-layer.
+    assert "not in this repository" in FLAT
+    assert "docs/VALIDATION.md" in SKILL_MD or "VALIDATION.md" in SKILL_MD
+
+
+def test_verifier_independence_is_documented_as_attribution_only():
+    # The model requires a non-empty verified_by, which is not the same as
+    # establishing independence. Saying so is the honest position.
+    src = ONBOARDING_SRC
+    assert "attribution" in src
+    assert "could pass any string" in src
+
+
+def test_tenant_binding_is_not_described_as_production_isolation():
+    src = ONBOARDING_SRC
+    assert "not** production tenant isolation" in src or "not production tenant isolation" in src
+    assert "row-level security" in src
+
+
 def test_the_document_delegates_execution_and_verification():
     # Onboarding is a control plane, not the execution authority.
     assert "not the execution authority" in FLAT

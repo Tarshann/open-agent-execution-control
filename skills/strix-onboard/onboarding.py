@@ -275,7 +275,17 @@ class Tenant:
 
 @dataclass(frozen=True)
 class TenantScoped:
-    """Base for every record that must not cross a tenant boundary."""
+    """Base for every record that must not cross a tenant boundary.
+
+    Scope of this guarantee: it is an in-process attachment check, and that is
+    all. It stops a record belonging to tenant A from being attached to tenant
+    B's project — including when a query layer wrongly returns one — which is
+    real defence in depth. It is **not** production tenant isolation: that
+    additionally requires authenticated tenant context, server-side
+    authorization, query scoping or row-level security, and service boundaries,
+    none of which live in this repository. Do not describe this as isolation
+    without saying which layer it is.
+    """
 
     tenant_id: str
 
@@ -471,6 +481,15 @@ class EvidenceVerificationResult(TenantScoped):
     ``npx @strixgov/verifier``). ``is_proof_bearing`` is derived from the
     verdict vocabulary, so onboarding cannot upgrade LEGACY_UNSIGNED or a
     COMPLIANCE_VIOLATION into a passing proof.
+
+    **What "independent" does and does not mean here.** ``verified_by`` is an
+    *attribution* field. Requiring it non-empty prevents an anonymous verdict
+    from reaching READY, which is worth something — but this module cannot
+    check that the named tool is independent of Strix, or that it was run at
+    all. A caller could pass any string. Independence is a property of the
+    operator actually running the public verifier out-of-band against a
+    publicly resolvable record; it is not established by this field, and no
+    claim built on it should say otherwise. See docs/VALIDATION.md.
     """
 
     evidence_id: str = ""
