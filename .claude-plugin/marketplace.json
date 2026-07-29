@@ -1,7 +1,7 @@
 {
   "name": "strixgov",
   "owner": {
-    "name": "Strix",
+    "name": "Strix Governance",
     "url": "https://www.strixgov.com"
   },
   "metadata": {
@@ -14,7 +14,7 @@
         "source": "github",
         "repo": "Tarshann/open-agent-execution-control"
       },
-      "version": "0.4.1",
+      "version": "0.4.2",
       "category": "security",
       "description": "Wire a first governed, recorded action into a codebase (/strix-governance:strix-wire \u2014 one read-only analysis authorization, then separate explicit approvals for the source change and the sandbox execution), and onboard a client organization through the reference workflow (/strix-governance:strix-onboard \u2014 tenant, systems, capabilities, policies, credential references, connectivity, one governed smoke test, then an external verifier's verdict; readiness is derived from that verdict, never asserted). Plugin skills are namespaced /strix-governance:<skill>. Both run with zero Strix account (Sandbox or Offline Mode). This plugin ships these two skills only \u2014 the three SGRF review lenses (runtime-governance-review, govern-pr, release-readiness) live in the upstream Strixgov/skills marketplace and are not included here.",
       "tags": [

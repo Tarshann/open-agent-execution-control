@@ -139,9 +139,13 @@ sync.
 
 ## License
 
-MIT — see the
-[`LICENSE`](https://github.com/Strixgov/skills/blob/main/LICENSE) in the
-upstream repository. Strix's open trust primitives (the
+MIT — see [`LICENSE`](LICENSE). Copyright is held by **Velaris Group LLC**;
+Strix Governance is that entity's product name, which is why the licence holder
+and the plugin's declared author differ. Strix's open trust primitives (the
 [`@strixgov/verifier`](https://www.npmjs.com/package/@strixgov/verifier) and the
 tool-gateway) are MIT too; the hosted runtime/control plane is the commercial
 layer.
+
+The licence covers everything in this tree, including the files vendored from
+the Strix monorepo (`skills/strix-wire/helpers/`, `preflight.py`, `scanner.py`)
+— same copyright holder, same terms, so no separate attribution applies.
