@@ -4,8 +4,11 @@ What was actually run, on what, with what result. Written so a third party can
 reproduce it and so the pass count cannot be quoted without its conditions.
 
 Produced for pull request #2, extended by #4 (claim scoping), #5 (marketplace
-re-point), #6 (a fail-open found in one of the fixes), #9 (licence), and a
-review of #8 (`strix-dataset-export`, contributed from another branch).
+re-point), #6 (a fail-open found in one of the fixes), #9 (licence), and #10 (the
+review of #8 — `strix-dataset-export`, contributed from another branch — and the
+four fixes it produced). Every fix recorded here is **merged into public `main`**
+— nothing below describes a pending proposal. This revision of the manifest is
+itself the only thing outstanding.
 
 ## Scope of this manifest
 
@@ -23,19 +26,35 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Base (public `main`) | `aa30810` — merge of pull request #9 |
-| Measured at | this branch, at or above that base |
-| Branch | `claude/strix-console-onboarding-bcbe3a-vg8w4i` |
+| Measured at | `458b822` — merge of pull request #10 into `main` |
+| Which is | the head of public `main`, and the parent of this manifest revision |
 | Working tree | clean at time of run |
 
-The base SHA is cited rather than the tip because a manifest cannot cite its own
-hash, and a rebase changes the tip while leaving the tested content identical.
-The suite is unchanged from `main` at that base; later commits on this branch
-touch only manifests and documentation. To confirm at any tip:
+Earlier revisions of this manifest cited a base SHA rather than a tip, because a
+manifest cannot contain its own hash. That caveat no longer applies to the
+numbers below: they were re-run **on the merge commit itself**, after #10 landed,
+so the commit named above is exactly the tree that produced them. The only commit
+after it is the one carrying this paragraph, which touches this file alone.
+
+`main` also contains `99ac613` (merge `e4ab265`, pull request #11) — a README
+scope callout contributed from another branch. It is documentation-only, changes
+no skill code or test, and both totals below were measured with it present.
+
+To confirm:
 
 ```bash
 git rev-parse HEAD && python3 -m pytest skills -q -rs
 ```
+
+The commits carrying the four fixes, so a reader can review them without going
+through the pull request:
+
+| Commit | Contents |
+|---|---|
+| `8f244d6` | the review of #8 itself, and this manifest brought current |
+| `1601e4f` | Finding 1 — token record signing |
+| `9f138f9` | Findings 2, 3 and 4 — Merkle construction, redemption atomicity, corrupt-token typing |
+| `458b822` | merge of #10 into `main` |
 
 ## Environment
 
@@ -66,10 +85,15 @@ reported because quoting the first without the second would overstate what ran.
 | Environment | Result |
 |---|---|
 | **As run here** (cffi installed) | `270 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `231 passed, 39 skipped` |
+| **Fresh clone of this image** (no cffi) | `231 passed, 39 skipped` · 0 failed |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
+
+Both were re-measured on `458b822` after the merge, not carried forward from the
+pre-merge branch run. They are unchanged from it — expected, since a merge commit
+of an already-tested branch alters no file, but a manifest that reports a merged
+commit without having run it is reporting an inference.
 
 ### The signing-dependent tests
 
@@ -123,8 +147,9 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 
 ## Discrimination evidence
 
-A passing suite proves nothing unless the tests would fail on the defect. Each
-fix on this branch was checked against the prior commit:
+A passing suite proves nothing unless the tests would fail on the defect. Every
+fix recorded in this manifest was checked against the pre-fix commit — by
+worktree for the strix-wire work, by mutation for the dataset-export work:
 
 | Fix | Method | Result |
 |---|---|---|
@@ -207,7 +232,7 @@ the code.
 
 ### Finding 1 — the execution token is unauthenticated (medium) — **RESOLVED**
 
-> Fixed in this branch. The token record now carries its own Ed25519 signature
+> Fixed, and merged to `main` in #10. The token record now carries its own Ed25519 signature
 > over every field, verified before any field is trusted and re-signed when
 > redemption flips `status`. Both demonstrated attacks are refused, and 11
 > regression tests pin it. Original finding and evidence retained below.
@@ -261,9 +286,9 @@ declares, not a stronger one. `SKILL.md` says this in the same words.
 
 ### Finding 2 — Merkle odd-leaf duplication collides (low) — **RESOLVED**
 
-> Fixed in this branch, and the investigation found two further defects in the
-> same primitive. Original finding retained below, followed by what was actually
-> wrong and what was done.
+> Fixed, and merged to `main` in #10. The investigation found two further defects
+> in the same primitive. Original finding retained below, followed by what was
+> actually wrong and what was done.
 
 
 `build_merkle_tree` duplicates the final node on an odd count, so `[a,b,c]` and
@@ -306,6 +331,8 @@ that disclaimer survives a failed verification (tested).
 
 ### Finding 3 — token redemption is not atomic (low) — **RESOLVED**
 
+> Fixed, and merged to `main` in #10. Original finding and the measurement that
+> established it are retained below.
 
 `redeem_execution_token` read the file, checked `status`, then wrote — three steps
 with no mutual exclusion, so two concurrent redemptions could both read `MINTED`,
@@ -334,9 +361,19 @@ contention across three rounds. Disabling the lock fails four of them.
 
 ### Finding 4 — corrupt-token handling is uneven (nit) — **RESOLVED**
 
+> Fixed, and merged to `main` in #10.
 
-A token file that parses but lacks `expiresAt` raises `KeyError` rather than a
-`StrixDatasetExport*` exception. Malformed JSON is handled; a missing key is not.
+A token file that parses but lacks `expiresAt` raised `KeyError` rather than a
+`StrixDatasetExport*` exception. Malformed JSON was handled; a missing key was not.
+
+**Resolution.** Presence is checked before the field is read, so a structurally
+valid record missing `expiresAt` raises `StrixDatasetExportTokenMissing` — the
+same type as a corrupt file, since both mean "this is not a usable token" — and
+`status` is read with `.get()` rather than indexed. Pinned by
+`test_a_token_missing_expiry_is_a_token_error_not_a_keyerror`, which re-signs the
+truncated record with the real key first — otherwise the signature check would
+reject it before the missing field was ever reached, and the test would pass
+without exercising the fix.
 
 ### Not assessed
 
