@@ -27,7 +27,7 @@ New client → tenant → systems → governed actions → policies + approvals
 | [`SKILL.md`](./SKILL.md) | The operator workflow — the guided flow, the one approval gate, and the failure modes. |
 | [`onboarding.py`](./onboarding.py) | The domain contracts, the state machine, and the tenancy boundary. All lifecycle truth lives here. |
 | [`status.py`](./status.py) | The readiness view (the console screen's content). Read-only. |
-| [`tests/`](./tests/) | 56 behavioral tests on the state machine, 15 on the readiness view, 14 pinning SKILL.md to the code. |
+| [`tests/`](./tests/) | 56 behavioral tests on the state machine, 15 on the readiness view, 18 pinning SKILL.md to the code. |
 
 ## The load-bearing rule
 
@@ -139,5 +139,5 @@ view is tested to contain no credential reference at all.
 ```bash
 python3 status.py --demo                      # see the shape of the view
 python3 status.py --project onboarding.json   # render a stored project
-python3 -m pytest tests -q                    # 85 tests
+python3 -m pytest tests -q                    # 89 tests
 ```
