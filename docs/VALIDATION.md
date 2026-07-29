@@ -3,14 +3,15 @@
 What was actually run, on what, with what result. Written so a third party can
 reproduce it and so the pass count cannot be quoted without its conditions.
 
-Produced for pull request #2, extended by #4 (claim scoping) and the
-marketplace re-point that followed.
+Produced for pull request #2, extended by #4 (claim scoping), #5 (marketplace
+re-point), #6 (a fail-open found in one of the fixes), #9 (licence), and a
+review of #8 (`strix-dataset-export`, contributed from another branch).
 
 ## Scope of this manifest
 
 This records **repository-layer validation only**: the onboarding domain model,
-the strix-wire analyzer, and the approval helpers, exercised in-process against
-fixture repositories.
+the strix-wire analyzer, the approval helpers, and the dataset-export governance
+helper, exercised in-process against fixture repositories and synthetic rows.
 
 It does **not** record an end-to-end hosted run. No part of this manifest
 demonstrates a real client onboarded through a hosted console, a hosted policy
@@ -22,7 +23,7 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Base (public `main`) | `c7d8bfe` — merge of pull request #6 |
+| Base (public `main`) | `aa30810` — merge of pull request #9 |
 | Measured at | this branch, at or above that base |
 | Branch | `claude/strix-console-onboarding-bcbe3a-vg8w4i` |
 | Working tree | clean at time of run |
@@ -64,25 +65,26 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `182 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `180 passed, 2 skipped` |
+| **As run here** (cffi installed) | `224 passed` · 0 skipped |
+| **Fresh clone of this image** (no cffi) | `209 passed, 15 skipped` |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
 
-### The two conditional tests
+### The signing-dependent tests
 
-Both are in `skills/strix-wire/tests/test_approval_gate.py`:
+15 tests need a working Ed25519 backend and skip without one. That is 6.7% of the
+suite, and it grew sharply with #8:
 
-| Test | Line | Skips when |
+| Suite | Skipped | What stops being proven |
 |---|---|---|
-| `test_explicit_true_runs_the_operation_exactly_once` | 154 | Ed25519 backend unusable |
-| `test_run_approved_pattern_grants_only_on_exactly_one` | 203 | Ed25519 backend unusable |
+| `strix-wire` | 2 | The **granted** branch of the approval gate — the path that signs a receipt. Refusal without an explicit boolean is still proven. |
+| `strix-dataset-export` | 13 | Receipt tampering detection, offline chain verification, self-approval refusal, and the adapter-never-invoked denial paths — i.e. most of the evidence and verifiability claims. |
 
-These are the **granted** branch of the approval gate — the path that signs a
-receipt. When they skip, the suite still proves that approval is *refused*
-without an explicit boolean (the invariant that prevents an unapproved
-irreversible action), but it does **not** prove the signing path works.
+Worth stating plainly: 13 of `strix-dataset-export`'s 42 tests (31%) do not run in
+a clean checkout, and they include the ones that substantiate its
+independent-verifiability claims. Install `requirements-test.txt` before treating
+that suite's green result as meaningful.
 
 `cryptography` does not fail cleanly here: a missing `_cffi_backend` makes the
 Rust binding panic rather than raise `ImportError`, which is why the skip guard
@@ -111,7 +113,8 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
 | `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
-| **Total** | **182** | |
+| `strix-dataset-export/tests/` (17 files) | 42 | Policy-before-execution, token binding/replay/expiry, receipt tampering, offline chain verification, Merkle inclusion, doc drift |
+| **Total** | **224** | |
 
 ## Discrimination evidence
 
@@ -127,6 +130,7 @@ fix on this branch was checked against the prior commit:
 | Wrap-execution test | Mutated the gate to always allow | New test failed; the replaced tautological test passed |
 | Hardened source scans | Injected a spaced `approval_granted = True` into a SKILL.md code block, and a nested write-mode `open()` | Both caught; the previous regex/substring versions missed both |
 | Directory-symlink completeness | Reverted the `unscanned_subtrees` STOP clause | 2 failed |
+| `strix-dataset-export` (#8), 8 guards | Mutated each guard in turn — see the review section below | 8/8 caught |
 
 Reproducing the worktree method:
 
@@ -157,6 +161,97 @@ filesystems report and which would collide across directories.
 
 Mirror commit `b004731`, merged via #6.
 
+## Review of #8 (`strix-dataset-export`)
+
+Contributed from another branch and merged before review. Assessed here against
+the same standard as the rest: do the tests discriminate, and do the claims match
+the code.
+
+### What holds up
+
+- **42 tests pass, and 8 of 8 security guards are caught by mutation.** Each
+  guard was disabled in turn and the suite re-run: self-approval (3 failed),
+  approval gate (23), token replay (1), token expiry (1), token binding (6),
+  receipt hash recompute (1), Ed25519 verification (1), Merkle inclusion (2).
+  Nothing survived.
+- **`verify_receipt` does not trust its input.** It resolves the public key from
+  the local registry by the receipt's `kid`, recomputes `evidenceHash` and
+  `proofChainHash`, and verifies the signature over the canonicalized payload.
+  Verification failure of any kind resolves to `INVALID` rather than crashing.
+- **Merkle leaf and internal nodes are domain-separated** by distinct key names
+  (`rowId`/`classification`/`fieldsHash` vs `left`/`right`), which blocks the
+  usual node-confusion second-preimage attack.
+- **No row content reaches the evidence.** Exporting rows carrying canary values
+  produced a receipt, an evidence record and a chain entry containing neither
+  canary — only hashes. Verified by grep against everything persisted under the
+  state directory.
+- **`test_doc_drift.py` is a genuine contract test**, not string-matching for its
+  own sake: it pins the `COMPLETENESS_CLAIM` constant against the literal in two
+  documents, and checks the exception list bidirectionally — every documented
+  exception is a real class, and every real class is documented.
+- **`GATE-REPORT.md` is honest about its own standing.** It states that no
+  canonical local Gate D/F/G/H template exists in this repository, labels its
+  gate lettering best-effort rather than SGRF-conformant, and carries a real
+  non-claims section.
+
+### Finding 1 — the execution token is unauthenticated (medium)
+
+`_binding_hash` covers the payload hash, destination, transform and
+classification digest. It does **not** cover `status`, `expiresAt` or `tokenId`,
+and the token record is plain JSON on disk. Two of the three claimed enforcement
+properties are therefore not tamper-evident. Confirmed by experiment:
+
+| Edit to the token file | Result |
+|---|---|
+| `status: REDEEMED` -> `MINTED` | **replay succeeded** — single-use defeated |
+| `expiresAt` -> far future | **expired token accepted** — time limit defeated |
+| a bound field (destination) | correctly refused (`TokenBindingMismatch`) |
+
+`GATE-REPORT.md` §4 reads "Tampering with any bound field after minting —
+including hand-editing the token file — produces a
+`StrixDatasetExportTokenBindingMismatch` on redemption ... Replay is refused ...
+and expiry is enforced." That is literally true of *bound* fields, but the
+parenthetical invites the reading that file tampering is caught generally. It is
+not, for precisely the two fields carrying the replay and expiry properties, and
+`test_negative_token_replay.py` / `test_negative_expired_token.py` prove those
+only against a non-tampering caller.
+
+Remedy: sign the token record with the key that already exists, or extend the
+binding hash to cover `tokenId` and `expiresAt` and store a MAC alongside. Until
+then the honest claim is "single-use and time-limited against a caller that does
+not edit the token file".
+
+### Finding 2 — Merkle odd-leaf duplication collides (low)
+
+`build_merkle_tree` duplicates the final node on an odd count, so `[a,b,c]` and
+`[a,b,c,c]` produce an identical root — confirmed by experiment. This does **not**
+violate any current claim: the skill disclaims completeness everywhere and every
+receipt carries `completeness: "NOT_PROVEN"`, and membership proofs remain sound.
+It matters as a constraint on the future: the root is not a reliable commitment to
+the multiset of rows, so no completeness or row-count claim may ever be built on
+it without changing the construction (length-prefixing, or domain-separating the
+odd node).
+
+### Finding 3 — token redemption is not atomic (low)
+
+`redeem_execution_token` reads the file, checks `status`, then writes. Two
+concurrent redemptions can both pass the check before either writes. Low impact
+for a single-machine local helper, but "can never be redeemed again" holds only
+single-threaded.
+
+### Finding 4 — corrupt-token handling is uneven (nit)
+
+A token file that parses but lacks `expiresAt` raises `KeyError` rather than a
+`StrixDatasetExport*` exception. Malformed JSON is handled; a missing key is not.
+
+### Not assessed
+
+The 1,204-line helper was reviewed at its security-critical surfaces — policy
+ordering, token lifecycle, receipt verification, Merkle construction, selective
+disclosure, evidence persistence. The `safe-harbor-v1` transform's
+de-identification *correctness* was not assessed, and the skill does not claim it:
+it is documented as a declared test transform that certifies nothing.
+
 ## Known gaps
 
 Required before the hosted Console onboarding objective could be considered
@@ -174,7 +269,10 @@ validated. None are addressed by this manifest.
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
 9. No browser readiness view.
-10. Verifier **independence is not established by this code.**
+10. `strix-dataset-export`'s token file is not integrity-protected, so its
+    single-use and expiry properties assume a caller that does not edit it
+    (Finding 1 above).
+11. Verifier **independence is not established by this code.**
     `EvidenceVerificationResult.verified_by` is an *attribution* field: it
     requires a non-empty name, which prevents an anonymous verdict, but nothing
     checks that the named tool is independent or was actually executed. A caller
