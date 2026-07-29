@@ -103,13 +103,17 @@ npx @strixgov/verifier@latest dec_2f8a1c94   # a real Strix record → Status: V
 
 ## Step 2 — install the skill in Claude Code
 
-Adds strix-wire plus the three governance-review lenses. Already installed?
-Run `/plugin update strix-governance@strixgov` to pull the latest.
+Adds `strix-wire` and `strix-onboard`. Already installed? Run
+`/plugin update strix-governance@strixgov` to pull the latest.
 
 ```
-/plugin marketplace add Strixgov/skills
+/plugin marketplace add Tarshann/open-agent-execution-control
 /plugin install strix-governance@strixgov
 ```
+
+> The three SGRF review lenses (`runtime-governance-review`, `govern-pr`,
+> `release-readiness`) are a separate marketplace and are not installed by the
+> command above. Add `Strixgov/skills` as well if you want them.
 
 ## Step 3 — open your project and run it
 

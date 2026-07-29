@@ -5,18 +5,18 @@
     "url": "https://www.strixgov.com"
   },
   "metadata": {
-    "description": "Strix Open \u2014 the SGRF v1 governance-review skills. Review how any system governs execution, score it on four orthogonal axes, and wire a first governed action. Advisory; no Strix account required."
+    "description": "Strix Open \u2014 the governed-action skills. Wire one consequential call site through governance and onboard a client to a first governed action with an externally checked receipt. Reference implementation, MIT, no Strix account required. Does not include the SGRF review lenses."
   },
   "plugins": [
     {
       "name": "strix-governance",
       "source": {
         "source": "github",
-        "repo": "Strixgov/skills"
+        "repo": "Tarshann/open-agent-execution-control"
       },
-      "version": "0.4.0",
+      "version": "0.4.1",
       "category": "security",
-      "description": "Run a Strix Governance Review (SGRF v1) on a system (/strix-governance:runtime-governance-review), a PR (/strix-governance:govern-pr), or a release (/strix-governance:release-readiness); wire a first governed, recorded action (/strix-governance:strix-wire, one read-only analysis authorization + separate wrap and execution approvals); and onboard a new client organization end-to-end (/strix-governance:strix-onboard \u2014 tenant, systems, capabilities, policies, credentials, connectivity, one governed smoke test, then independent proof verification). Plugin skills are namespaced /strix-governance:<skill>. The three review lenses are advisory and run anywhere; strix-wire runs with zero account (Sandbox or Offline Mode).",
+      "description": "Wire a first governed, recorded action into a codebase (/strix-governance:strix-wire \u2014 one read-only analysis authorization, then separate explicit approvals for the source change and the sandbox execution), and onboard a client organization through the reference workflow (/strix-governance:strix-onboard \u2014 tenant, systems, capabilities, policies, credential references, connectivity, one governed smoke test, then an external verifier's verdict; readiness is derived from that verdict, never asserted). Plugin skills are namespaced /strix-governance:<skill>. Both run with zero Strix account (Sandbox or Offline Mode). This plugin ships these two skills only \u2014 the three SGRF review lenses (runtime-governance-review, govern-pr, release-readiness) live in the upstream Strixgov/skills marketplace and are not included here.",
       "tags": [
         "governance",
         "sgrf",

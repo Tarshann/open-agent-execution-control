@@ -1,7 +1,7 @@
 {
   "name": "strix-governance",
-  "version": "0.4.0",
-  "description": "SGRF v1 governance-review skills for Claude Code \u2014 the system, change, and release lenses, plus strix-wire to wire a first governed action and strix-onboard to take a new client organization from no configuration to an independently verified governed action. strix-wire asks once for read-only analysis (WIRE-CONSENT-1), then pauses only at the source-change and execution decisions; strix-onboard (ONBOARD-1) pauses only at the governed smoke test and derives readiness from verified proof. Advisory by default; runtime-aware when a Strix runtime is present.",
+  "version": "0.4.1",
+  "description": "Governed-action skills for Claude Code. strix-wire wires one consequential call site through governedAction(): it asks once for read-only analysis (WIRE-CONSENT-1), then pauses only at the source-change and execution decisions. strix-onboard (ONBOARD-1) is the reference client-onboarding workflow: it pauses only at the governed smoke test and derives readiness from a recorded verifier verdict rather than an operator-set status. Both run with no Strix account; runtime-aware when a Strix runtime is present. The SGRF review lenses are not part of this plugin.",
   "author": {
     "name": "Strix",
     "url": "https://www.strixgov.com"
