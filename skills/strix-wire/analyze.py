@@ -37,8 +37,16 @@ authorization. In a single process it performs, in order:
   7. helper integrity     — SHA-256 of every bundled helper, compared against
                             any copy already present in the repository.
 
-What this script must NEVER do — enforced by construction and pinned by
-``tests/test_consent_boundary.py``:
+What this script must NEVER do. Be precise about how that is enforced: there
+is NO runtime sandbox here. The guarantee is that the code contains no such
+call, and that the test suite fails if one appears — ``test_consent_contract``
+scans the source (and the vendored preflight/scanner) for write, subprocess and
+network primitives and AST-checks every ``open()`` mode, while
+``test_consent_boundary`` and ``test_scope_containment`` assert behaviorally,
+via the interpreter's audit hook and before/after tree hashes, that a run reads
+only in-scope paths and writes nothing. That is absence-of-capability plus
+regression pressure — not a mechanism that would stop a deliberately modified
+copy of this file:
 
   - write, create, delete, move, or chmod any file (its only output is
     stdout/stderr);
@@ -73,6 +81,7 @@ import importlib.util
 import json
 import os
 import platform
+import re
 import sys
 from pathlib import Path
 
@@ -118,8 +127,8 @@ TEMP_SEGMENTS = frozenset(
 )
 
 # Bundled helper files whose integrity the analysis attests, and the names
-# a copy may have been given inside a customer repository (4a in SKILL.md
-# renames the Python helpers on copy).
+# a copy may have been given inside a customer repository (Phase 3b in
+# SKILL.md renames the Python helpers on copy).
 BUNDLED_HELPERS = (
     "helpers/governed_action.py",
     "helpers/governedAction.ts",
@@ -177,6 +186,44 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(65536), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+_UNSAFE_FOR_DISPLAY = re.compile(r"[^\x20-\x7e]")
+
+
+def _safe(value: object, limit: int = 160) -> str:
+    """Render repository-controlled text as one inert, single-line token.
+
+    File paths and source snippets come from the scanned repo, and the
+    operator reads this report to decide what to approve next. Left raw, a
+    crafted filename or line can carry ANSI escapes (repaint or erase
+    surrounding lines), embedded newlines (forge extra RECOMMENDED entries),
+    or bidi overrides (display a different path than the one recorded) — all
+    legal on disk. This block also promises to render identically in every
+    terminal, so anything outside printable ASCII becomes '?'.
+
+    The --json output is not passed through this: JSON escapes control
+    characters already, and machine consumers need the exact bytes.
+    """
+    text = str(value)
+    for ch in ("\t", "\n", "\r"):
+        text = text.replace(ch, " ")
+    text = _UNSAFE_FOR_DISPLAY.sub("?", text)
+    if len(text) > limit:
+        text = text[: limit - 3] + "..."
+    return text
+
+
+def _within_root(path: Path, root: Path) -> bool:
+    """True when ``path`` — fully resolved, so every symlink component is
+    followed — still lands inside ``root``. Only consulted for symlinks, so a
+    caller passing an unresolved root cannot be tripped up by it."""
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except OSError:
+        return False
+    return resolved == base or base in resolved.parents
 
 
 def _is_temp_path(rel_path: str) -> bool:
@@ -293,6 +340,10 @@ def helper_integrity(root: Path, source_files: list[Path]) -> dict:
     for f in source_files:
         counterpart = COPY_NAME_TO_BUNDLED.get(f.name)
         if counterpart is None or counterpart not in bundle_hashes:
+            continue
+        # A helper-named symlink pointing outside the repo must not be hashed:
+        # reading it would take content from outside the analysis root.
+        if f.is_symlink() and not _within_root(f, root):
             continue
         try:
             identical = _sha256(f) == bundle_hashes[counterpart]
@@ -480,15 +531,17 @@ def run_analysis(root: Path, limit: int = 20) -> tuple[dict, int]:
 
 
 def _format_human(report: dict) -> str:
-    # ASCII only: this block must render identically in every terminal.
+    # ASCII only: this block must render identically in every terminal. Every
+    # interpolated value that can originate in the scanned repository (paths,
+    # snippets, preflight reasons naming files) goes through _safe().
     lines = [
         "STRIX WIRE -- ANALYSIS COMPLETE (read-only)",
         "",
-        f"  Scope       {report['consent']['scope_root']}",
+        f"  Scope       {_safe(report['consent']['scope_root'])}",
     ]
     if report.get("verdict") == "STOP":
         lines += [
-            "  PREFLIGHT   STOP -- " + report.get("reason", ""),
+            "  PREFLIGHT   STOP -- " + _safe(report.get("reason", ""), limit=400),
             "",
             "Analysis halted before scanning (fail closed). Nothing was read",
             "beyond the preflight markers; nothing was modified.",
@@ -496,17 +549,23 @@ def _format_human(report: dict) -> str:
         return "\n".join(lines)
     if report.get("verdict") in ("ERROR", "REMEDIATION_REQUIRED"):
         for item in report.get("remediation", []):
-            lines.append(f"  FIX         {item['issue']} -- {item['fix']}")
+            lines.append(
+                f"  FIX         {_safe(item['issue'])} -- {_safe(item['fix'], limit=400)}"
+            )
         if "error" in report:
-            lines.append(f"  ERROR       {report['error']}")
+            lines.append(f"  ERROR       {_safe(report['error'])}")
         return "\n".join(lines)
 
     scan = report["scan"]
     runtime = report["runtime"]
     lines += [
         f"  PREFLIGHT   OK",
-        f"  RUNTIME     python {runtime['python']}"
-        + (f" | project language: {runtime['language']}" if runtime["language"] else ""),
+        f"  RUNTIME     python {_safe(runtime['python'], limit=40)}"
+        + (
+            f" | project language: {_safe(runtime['language'], limit=40)}"
+            if runtime["language"]
+            else ""
+        ),
         f"  SCANNED     {scan['files_considered']} files for hard-to-undo actions",
         f"  FOUND       {scan['candidates_total']} candidates"
         + (
@@ -518,17 +577,29 @@ def _format_human(report: dict) -> str:
     if scan["recommended"]:
         r = scan["recommended"]
         lines.append(
-            f"  RECOMMENDED {r['file']}:{r['line']}  ({r['capability_id']})"
+            f"  RECOMMENDED {_safe(r['file'])}:{_safe(r['line'], limit=12)}"
+            f"  ({_safe(r['capability_id'], limit=48)})"
+        )
+    skipped_links = report.get("preflight", {}).get("symlinksSkipped") or []
+    if skipped_links:
+        # Disclose scope refusals: the operator should see that the analysis
+        # declined to read through a link rather than silently covering less
+        # ground than the scope line implies.
+        lines.append(
+            f"  LINKS       {len(skipped_links)} symlink(s) not followed "
+            "(outside analysis scope)"
         )
     copies = report["helper_integrity"]["copies_in_repo"]
     if copies:
         for cp in copies:
             status = "identical to bundle" if cp["identical"] else "DIVERGES from bundle"
-            lines.append(f"  HELPER      {cp['path']} -- {status}")
+            lines.append(f"  HELPER      {_safe(cp['path'])} -- {status}")
     else:
         lines.append("  HELPER      no governed-action helper in this repo yet")
     for item in report.get("remediation", []):
-        lines.append(f"  NOTE        {item['issue']} -- {item['fix']}")
+        lines.append(
+            f"  NOTE        {_safe(item['issue'])} -- {_safe(item['fix'], limit=400)}"
+        )
     lines += [
         "",
         "This analysis made no changes: no files written, no packages",

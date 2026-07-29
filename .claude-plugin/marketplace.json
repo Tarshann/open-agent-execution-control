@@ -1,17 +1,30 @@
 {
   "name": "strixgov",
-  "owner": { "name": "Strix", "url": "https://www.strixgov.com" },
+  "owner": {
+    "name": "Strix",
+    "url": "https://www.strixgov.com"
+  },
   "metadata": {
-    "description": "Strix Open — the SGRF v1 governance-review skills. Review how any system governs execution, score it on four orthogonal axes, and wire a first governed action. Advisory; no Strix account required."
+    "description": "Strix Open \u2014 the SGRF v1 governance-review skills. Review how any system governs execution, score it on four orthogonal axes, and wire a first governed action. Advisory; no Strix account required."
   },
   "plugins": [
     {
       "name": "strix-governance",
-      "source": { "source": "github", "repo": "Strixgov/skills" },
-      "version": "0.3.0",
+      "source": {
+        "source": "github",
+        "repo": "Strixgov/skills"
+      },
+      "version": "0.4.0",
       "category": "security",
-      "description": "Run a Strix Governance Review (SGRF v1) on a system (/strix-governance:runtime-governance-review), a PR (/strix-governance:govern-pr), or a release (/strix-governance:release-readiness) — and wire a first governed, recorded action (/strix-governance:strix-wire, one read-only analysis authorization + separate wrap and execution approvals). Plugin skills are namespaced /strix-governance:<skill>. The three review lenses are advisory and run anywhere; strix-wire runs with zero account (Sandbox or Offline Mode).",
-      "tags": ["governance", "sgrf", "ai-agents", "execution-control", "code-review"]
+      "description": "Run a Strix Governance Review (SGRF v1) on a system (/strix-governance:runtime-governance-review), a PR (/strix-governance:govern-pr), or a release (/strix-governance:release-readiness); wire a first governed, recorded action (/strix-governance:strix-wire, one read-only analysis authorization + separate wrap and execution approvals); and onboard a new client organization end-to-end (/strix-governance:strix-onboard \u2014 tenant, systems, capabilities, policies, credentials, connectivity, one governed smoke test, then independent proof verification). Plugin skills are namespaced /strix-governance:<skill>. The three review lenses are advisory and run anywhere; strix-wire runs with zero account (Sandbox or Offline Mode).",
+      "tags": [
+        "governance",
+        "sgrf",
+        "ai-agents",
+        "execution-control",
+        "code-review",
+        "onboarding"
+      ]
     }
   ]
 }

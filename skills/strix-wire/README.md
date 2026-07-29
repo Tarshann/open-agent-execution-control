@@ -74,10 +74,10 @@ Everything the skill needs is bundled here — **no `pip install`**
 ## The analysis authorization, precisely
 
 `analyze.py` is the whole read-only phase in one process: scope guard →
-preflight → runtime detection → repository check → consequential-action scan
-→ candidate analysis with automatic temporary-path exclusion →
-helper-integrity comparison. One command, one permission prompt, one
-disclosed card:
+repository check (stat-only, before any content read) → preflight → runtime
+detection → consequential-action scan → candidate analysis with automatic
+temporary-path exclusion → helper-integrity comparison. One command, one
+permission prompt, one disclosed card:
 
 ```bash
 python3 skills/strix-wire/analyze.py --root . --json

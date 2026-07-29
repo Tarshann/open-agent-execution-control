@@ -3,7 +3,20 @@
 Govern one real action in about **two minutes**. strix-wire finds one
 irreversible call in your code, wraps it in governance, runs it once, and hands
 you a **cryptographically signed receipt anyone can verify** — with no Strix
-account, and no data leaving your machine except the one evaluation request.
+account.
+
+**What leaves your machine.** The analysis and the wrap are entirely local.
+The *run* depends on which mode you use:
+
+- **Sandbox Mode** (the default when you have no account) makes up to four
+  calls to `www.strixgov.com`: provision a short-lived sandbox credential,
+  evaluate the action, ingest the evidence record, and fetch the signed
+  decision receipt. What travels is the action's non-secret parameters
+  (amounts, IDs) — never API keys, tokens, or card numbers.
+- **Offline Mode** makes none. No network, no account, no credential; the
+  receipt is signed by a key generated on your machine.
+
+See the mode comparison in [`README.md`](./README.md) before you pick.
 
 ## Plain English first — what do these words actually mean?
 
@@ -70,7 +83,7 @@ two get you a wrapped-but-unrun codebase, three get you the proof.
 | **Claude Code** (CLI or desktop) | strix-wire is a Claude Code skill, not a standalone binary. |
 | **Python 3** | Runs the scanner + the safety preflight. Stdlib only — nothing to `pip install`. |
 | **Node + npm** | Only for the final self-check (`npx @strixgov/verifier`). |
-| **No Strix account** | If no API key is set, local mode auto-provisions a short-lived sandbox credential — you still get a real, hosted, signed decision. |
+| **No Strix account** | If no API key is set, **Sandbox Mode** auto-provisions a short-lived sandbox credential — you still get a real, hosted, signed decision. (Offline Mode provisions nothing and contacts nothing.) |
 
 > **Use a non-production sandbox repo the first time.** strix-wire fires one
 > real action. The preflight guard refuses to run in a live or already-governed
@@ -85,7 +98,7 @@ Skip this if you just want to wire your own repo.
 
 ```bash
 solo demo adversarial                 # air-gapped end-to-end walkthrough
-npx @strixgov/verifier@latest 5686    # a real Strix record → Status: VERIFIED
+npx @strixgov/verifier@latest dec_2f8a1c94   # a real Strix record → Status: VERIFIED
 ```
 
 ## Step 2 — install the skill in Claude Code

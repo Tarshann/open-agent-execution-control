@@ -21,7 +21,13 @@ Contract (pinned by tests/test_strix_wire_preflight.py):
     the loose skill file AND vendored into the strix-personal plugin.
   - verdict "STOP" when governed OR production markers are found; "OK" otherwise.
   - exit code 3 on STOP, 0 on OK, 2 on bad invocation. Fail CLOSED: an
-    unreadable root or a scan error resolves to STOP, never a silent OK.
+    unreadable root, an unreadable FILE, or a scan error resolves to STOP,
+    never a silent OK. A file that could not be read was never checked for
+    markers, so it makes the scan incomplete (``unreadableFiles``) — "we
+    didn't finish looking" is never reported as "we looked and it's clean".
+  - scope containment: no directory symlink is followed and no file symlink
+    leaving the root is read, so a marker "found" is always this repo's own.
+    Skipped links appear in ``symlinksSkipped`` rather than vanishing.
 
 Usage:
     python3 preflight.py [--root .] [--json]
@@ -77,15 +83,49 @@ def _is_env_file(name: str) -> bool:
     return name.startswith(".env")
 
 
+def _within_root(path: Path, root: Path) -> bool:
+    """True when ``path`` — fully resolved, so every symlink component is
+    followed — still lands inside ``root``.
+
+    Symlink containment is a scope property, not a nicety. A link such as
+    ``config.py -> /etc/passwd`` is listed by ``iterdir()`` under an in-root
+    name, so reading it would pull content from outside the analysis root
+    while every path this scan reports still looked local.
+    """
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except OSError:
+        return False
+    return resolved == base or base in resolved.parents
+
+
+def _dir_identity(path: Path) -> tuple[int, int] | None:
+    """(device, inode) used to break directory cycles; None if unstattable."""
+    try:
+        st = path.stat()
+    except OSError:
+        return None
+    return (st.st_dev, st.st_ino)
+
+
 def scan(root: Path) -> dict:
     """Walk the repo (bounded) and collect governance/production markers.
 
     Fail closed: any structural problem resolves to STOP.
+
+    The walk never follows a directory symlink and never reads through a file
+    symlink that leaves ``root``; both would take the scan outside the scope
+    it was authorized for. Skipped links are reported in ``symlinksSkipped``
+    rather than dropped silently.
     """
     markers: list[dict] = []
     seen: set[tuple[str, str]] = set()
     files_scanned = 0
     truncated = False
+    links_skipped: list[dict] = []
+    unreadable_files: list[str] = []
+    visited_dirs: set[tuple[int, int]] = set()
 
     def add(marker: str, kind: str, path: str) -> None:
         key = (marker, kind)
@@ -94,8 +134,20 @@ def scan(root: Path) -> dict:
         seen.add(key)
         markers.append({"marker": marker, "kind": kind, "path": path})
 
+    def rel(path: Path) -> str:
+        try:
+            return str(path.relative_to(root))
+        except ValueError:  # pragma: no cover - defensive
+            return path.name
+
+    def skip_link(path: Path, reason: str) -> None:
+        links_skipped.append({"path": rel(path), "reason": reason})
+
     try:
         stack = [root]
+        root_identity = _dir_identity(root)
+        if root_identity is not None:
+            visited_dirs.add(root_identity)
         while stack:
             cur = stack.pop()
             try:
@@ -103,25 +155,60 @@ def scan(root: Path) -> dict:
             except (PermissionError, OSError):
                 continue
             for entry in entries:
-                if entry.is_dir():
+                try:
+                    is_link = entry.is_symlink()
+                    is_dir = entry.is_dir()
+                    is_file = entry.is_file()
+                except OSError:
+                    # We cannot even classify this entry, so it was never
+                    # examined for markers. Skipping it silently would fail
+                    # OPEN; record it so the verdict reflects the gap.
+                    unreadable_files.append(rel(entry))
+                    continue
+                if is_dir:
                     if entry.name in _SKIP_DIRS:
                         continue
+                    # Never descend a directory symlink: it can point outside
+                    # the analysis root, and a link back to an ancestor makes
+                    # this stack-based walk loop until the file bound (or
+                    # forever, if the cycle holds no readable text file).
+                    # Real subdirectories are still reached directly, so
+                    # nothing genuinely in scope is missed.
+                    if is_link:
+                        skip_link(entry, "directory symlink not followed")
+                        continue
+                    identity = _dir_identity(entry)
+                    if identity is not None:
+                        # Bind mounts and hardlinked directories can cycle
+                        # without a symlink in sight.
+                        if identity in visited_dirs:
+                            continue
+                        visited_dirs.add(identity)
                     stack.append(entry)
                     continue
-                if not entry.is_file():
+                if not is_file:
                     continue
                 name = entry.name
-                # filename markers (cheap, no read)
+                # filename markers (cheap, no read). The NAME is in-root
+                # information even for a link, and matching it discloses no
+                # content, so a link named .env.production still counts.
                 for rx, label, kind in _FILENAME_MARKERS:
                     if rx.search(name):
-                        add(label, kind, str(entry.relative_to(root)))
+                        add(label, kind, rel(entry))
                 # decide whether to read contents
                 if entry.suffix.lower() not in _TEXT_EXTS and not _is_env_file(name):
+                    continue
+                # Content read: only from a file that really lives in scope.
+                if is_link and not _within_root(entry, root):
+                    skip_link(entry, "file symlink resolves outside the analysis root")
                     continue
                 try:
                     if entry.stat().st_size > _MAX_BYTES:
                         continue
                 except OSError:
+                    # Cannot even size the file, so it was never examined for
+                    # markers. Silently skipping it would fail OPEN.
+                    unreadable_files.append(rel(entry))
                     continue
                 files_scanned += 1
                 if files_scanned > _MAX_FILES:
@@ -130,10 +217,14 @@ def scan(root: Path) -> dict:
                 try:
                     text = entry.read_text(encoding="utf-8", errors="ignore")
                 except (OSError, ValueError):
+                    # A file we could not read is a file we did not check. It
+                    # may be exactly the one holding a governance or production
+                    # marker, so it makes the scan incomplete rather than clean.
+                    unreadable_files.append(rel(entry))
                     continue
                 for rx, label, kind in _PATTERNS:
                     if rx.search(text):
-                        add(label, kind, str(entry.relative_to(root)))
+                        add(label, kind, rel(entry))
                 if len(markers) >= _MAX_MARKERS:
                     truncated = True
                     break
@@ -148,23 +239,40 @@ def scan(root: Path) -> dict:
             "reason": "preflight could not complete; failing closed",
             "filesScanned": files_scanned,
             "truncated": truncated,
+            "symlinksSkipped": links_skipped,
+            "unreadableFiles": unreadable_files,
         }
 
     governed = any(m["kind"] == "governed" for m in markers)
     production = any(m["kind"] == "production" for m in markers)
-    stop = governed or production
+    # An incomplete scan is not a clean scan: files we could not read were
+    # never checked for markers, so the guard cannot certify this repo.
+    stop = governed or production or bool(unreadable_files)
     return {
         "verdict": "STOP" if stop else "OK",
         "governed": governed,
         "production": production,
         "markers": markers,
-        "reason": _reason(governed, production),
+        "reason": _reason(governed, production, unreadable_files),
         "filesScanned": files_scanned,
         "truncated": truncated,
+        "symlinksSkipped": links_skipped,
+        "unreadableFiles": unreadable_files,
     }
 
 
-def _reason(governed: bool, production: bool) -> str:
+def _reason(
+    governed: bool, production: bool, unreadable: list[str] | None = None
+) -> str:
+    if unreadable and not (governed or production):
+        shown = ", ".join(unreadable[:3])
+        more = f" (+{len(unreadable) - 3} more)" if len(unreadable) > 3 else ""
+        return (
+            f"{len(unreadable)} file(s) under the root could not be read "
+            f"({shown}{more}); a file that was never examined may hold the "
+            "governance or production marker this guard exists to find — "
+            "failing closed rather than reporting a clean scan."
+        )
     if governed and production:
         return ("This repo already has first-party Strix governance AND shows "
                 "production markers. strix-wire is a quickstart for ungoverned "
