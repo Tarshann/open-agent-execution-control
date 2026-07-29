@@ -11,29 +11,35 @@ lenses are advisory by construction — they read and report, they never enforce
 
 ## What's inside
 
+This repository ships **two** skills, and the plugin installed from it contains
+exactly those two:
+
 | Skill | Lens | What it does |
 |---|---|---|
-| `/runtime-governance-review` | system | The canonical 13-section SGRF review of a project, agent, MCP server, or CI/CD pipeline + the 4-axis profile. |
-| `/govern-pr` | change | Governance-impact review of a single PR/diff — which axes does this change move, and which way. |
-| `/release-readiness` | release | Is a release shipping as a governed, recorded, revocable decision? Ends in GO / GO-WITH-CONDITIONS / NO-GO. |
 | `/strix-onboard` | onboarding | The **reference onboarding workflow**: tenant, systems, governed capabilities, policies and approval routes, adapters and credential references, connectivity validation, one governed smoke test through the real decision path, then an external verifier's verdict. Readiness is derived from that verdict, never asserted. Open skills-layer model — not the hosted Console, and not a production provisioning system. See [`skills/strix-onboard/`](skills/strix-onboard/) and [`docs/VALIDATION.md`](docs/VALIDATION.md). |
 | `/strix-wire` | remediation | Wire one consequential call site through `governedAction()`: one scoped read-only analysis authorization, then separate explicit approvals for the source change and the sandbox execution (three clicks end-to-end — see [`docs/consent-architecture.md`](docs/consent-architecture.md)). The kernel evaluates the action before it runs and a signed, queryable evidence record is produced. No Strix account required (Sandbox Mode auto-provisions; Offline Mode never leaves the machine). |
 
-The first three are pure-advisory and need no runtime. `strix-wire` is the bridge
-from the open advisory layer to the Strix runtime — open skill, commercial control
-plane.
+`strix-wire` is the bridge from the open advisory layer to the Strix runtime —
+open skill, commercial control plane. `strix-onboard` is a reference model, not
+the hosted Console; see [`docs/VALIDATION.md`](docs/VALIDATION.md) for what has
+and has not been validated.
 
-The methodology itself — the frozen 13-section / 4-axis contract every lens
-produces — is vendored as `strix-governance-review-framework-v1.md` alongside
-the review skills in the upstream
-[`Strixgov/skills`](https://github.com/Strixgov/skills) repository, so those
-skills resolve their cited contract offline.
+### Not in this plugin
 
-> **What this repository actually contains.** This mirror carries the
-> `/strix-wire` skill (`skills/strix-wire/`) and its consent architecture
-> (`docs/consent-architecture.md`), plus the `strix-personal` and
-> `strix-verifier` plugins. The three review lenses and the SGRF spec live
-> upstream and are installed via the marketplace below, not from this tree.
+The three SGRF review lenses — `/runtime-governance-review` (system),
+`/govern-pr` (change), and `/release-readiness` (release) — and the frozen
+13-section / 4-axis methodology spec live in the separate upstream
+[`Strixgov/skills`](https://github.com/Strixgov/skills) marketplace. They are
+**not** installed by the plugin in this repository. Add that marketplace as well
+if you want them:
+
+```
+/plugin marketplace add Strixgov/skills
+```
+
+This repository also carries two other plugins that are not part of
+`strix-governance`: `strix-personal` (`plugins/strix-personal/`) and the
+verifier (`strixgov-plugins/`).
 
 ## Install
 
@@ -42,17 +48,16 @@ skills resolve their cited contract offline.
 Add the marketplace, then install the plugin:
 
 ```
-/plugin marketplace add Strixgov/skills
+/plugin marketplace add Tarshann/open-agent-execution-control
 /plugin install strix-governance@strixgov
 /reload-plugins
 ```
 
-Then invoke a lens (skills are namespaced by the plugin):
+Then invoke a skill (they are namespaced by the plugin):
 
 ```
-/strix-governance:runtime-governance-review the deploy workflow in this repo
-/strix-governance:govern-pr --base origin/main --head HEAD
-/strix-governance:release-readiness v1.2.0
+/strix-governance:strix-wire
+/strix-governance:strix-onboard
 ```
 
 ### Option B — manual copy (no marketplace)
@@ -60,14 +65,13 @@ Then invoke a lens (skills are namespaced by the plugin):
 Clone this repo and copy the skills into your project's `.claude/skills/`:
 
 ```bash
-git clone https://github.com/Strixgov/skills strixgov-skills
+git clone https://github.com/Tarshann/open-agent-execution-control strix-open
 mkdir -p .claude/skills
-cp -r strixgov-skills/skills/* .claude/skills/
+cp -r strix-open/skills/strix-wire strix-open/skills/strix-onboard .claude/skills/
 ```
 
 Restart Claude Code (or `/reload-plugins`); the skills appear unnamespaced
-(`/runtime-governance-review`, `/govern-pr`, `/release-readiness`,
-`/strix-wire`).
+(`/strix-wire`, `/strix-onboard`).
 
 ### Prerequisites for `/strix-wire` only
 
@@ -116,12 +120,22 @@ MIT verifier:
 npx @strixgov/verifier@latest <evidenceId>
 ```
 
-## Mirror, not the source of truth
+## Where these skills come from
 
-This repository is a **public release surface**. The canonical skills live upstream
-in the Strix monorepo; the SGRF methodology spec is vendored from there so the
-skills resolve their cited contract offline. Changes flow upstream first, are
-checked for drift against the frozen spec, then synced here at release time.
+This repository is the **distribution source** for the two skills it ships: the
+`strix-governance` marketplace entry points here, so `/plugin install` serves
+`skills/strix-wire/` and `skills/strix-onboard/` from this tree at the pinned
+version. Fix them here.
+
+The SGRF review lenses and the frozen methodology spec are a different story —
+they are canonical in the Strix monorepo and published through the separate
+[`Strixgov/skills`](https://github.com/Strixgov/skills) marketplace. Changes to
+*those* flow upstream first and are checked for drift against the frozen spec.
+
+The `strix-wire` helpers under `skills/strix-wire/helpers/` are vendored from the
+monorepo; the analyzer, preflight and scanner in this tree now carry local
+security fixes that should be flowed upstream rather than overwritten by the next
+sync.
 
 ## License
 

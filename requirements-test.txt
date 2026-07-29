@@ -1,4 +1,4 @@
-# Test dependencies for the skills suites.
+# Test dependencies for the skills suites (pip install -r requirements-test.txt).
 #
 # Why this file exists: without it, the cryptographic path degrades SILENTLY.
 # Local Mode signs receipts with Ed25519, which `cryptography` provides via a

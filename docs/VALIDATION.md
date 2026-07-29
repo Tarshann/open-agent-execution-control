@@ -3,8 +3,8 @@
 What was actually run, on what, with what result. Written so a third party can
 reproduce it and so the pass count cannot be quoted without its conditions.
 
-Produced for the branch `claude/strix-console-onboarding-bcbe3a-vg8w4i`
-(pull request #2).
+Produced for pull request #2, extended by #4 (claim scoping) and the
+marketplace re-point that followed.
 
 ## Scope of this manifest
 
@@ -22,15 +22,15 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Base (public `main`) | `0ca6966` — merge of pull request #2 |
-| Measured at | this branch, two commits above that base |
+| Base (public `main`) | `f1469b1` — merge of pull request #4 |
+| Measured at | this branch, at or above that base |
 | Branch | `claude/strix-console-onboarding-bcbe3a-vg8w4i` |
 | Working tree | clean at time of run |
 
 The base SHA is cited rather than the tip because a manifest cannot cite its own
 hash, and a rebase changes the tip while leaving the tested content identical.
-The two commits above the base add four contract tests and this document; nothing
-else in the suite differs from `main`. To confirm at any tip:
+The suite is unchanged from `main` at that base; later commits on this branch
+touch only manifests and documentation. To confirm at any tip:
 
 ```bash
 git rev-parse HEAD && python3 -m pytest skills -q -rs
@@ -86,7 +86,7 @@ irreversible action), but it does **not** prove the signing path works.
 
 `cryptography` does not fail cleanly here: a missing `_cffi_backend` makes the
 Rust binding panic rather than raise `ImportError`, which is why the skip guard
-catches `BaseException`. `skills/requirements-test.txt` now declares the
+catches `BaseException`. `requirements-test.txt` now declares the
 dependency so this degradation is deliberate rather than accidental.
 
 ### Other conditional skips
