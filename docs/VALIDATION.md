@@ -22,7 +22,7 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Base (public `main`) | `f1469b1` — merge of pull request #4 |
+| Base (public `main`) | `c7d8bfe` — merge of pull request #6 |
 | Measured at | this branch, at or above that base |
 | Branch | `claude/strix-console-onboarding-bcbe3a-vg8w4i` |
 | Working tree | clean at time of run |
@@ -64,8 +64,8 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `180 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `178 passed, 2 skipped` |
+| **As run here** (cffi installed) | `182 passed` · 0 skipped |
+| **Fresh clone of this image** (no cffi) | `180 passed, 2 skipped` |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
@@ -105,13 +105,13 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-wire/tests/test_approval_gate.py` | 29 | Approval refused unless an explicit boolean; env-var pattern semantics |
 | `strix-wire/tests/test_consent_boundary.py` | 20 | Analysis authorization cannot become mutation or execution authority |
 | `strix-wire/tests/test_consent_contract.py` | 20 | Source scans: no write/subprocess/network primitive; AST-checked `open()` modes |
-| `strix-wire/tests/test_scope_containment.py` | 6 | Symlink escapes (file, directory, ancestor cycle) |
+| `strix-wire/tests/test_scope_containment.py` | 8 | Symlink escapes (file, directory, ancestor cycle) and the out-of-root completeness STOP |
 | `strix-wire/tests/test_report_integrity.py` | 11 | Repo-controlled text cannot forge the approval report |
 | `strix-wire/tests/test_preflight_fails_closed.py` | 5 | An unreadable file makes the scan incomplete, not clean |
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
 | `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
-| **Total** | **180** | |
+| **Total** | **182** | |
 
 ## Discrimination evidence
 
@@ -126,6 +126,7 @@ fix on this branch was checked against the prior commit:
 | Approval truthiness | Same, 29 tests | 6 failed (the ambiguous-truthy cases) |
 | Wrap-execution test | Mutated the gate to always allow | New test failed; the replaced tautological test passed |
 | Hardened source scans | Injected a spaced `approval_granted = True` into a SKILL.md code block, and a nested write-mode `open()` | Both caught; the previous regex/substring versions missed both |
+| Directory-symlink completeness | Reverted the `unscanned_subtrees` STOP clause | 2 failed |
 
 Reproducing the worktree method:
 
@@ -134,6 +135,27 @@ git worktree add /tmp/prefix <pre-fix-sha>
 cp skills/strix-wire/tests/test_scope_containment.py /tmp/prefix/skills/strix-wire/tests/
 cd /tmp/prefix && python3 -m pytest skills/strix-wire/tests/test_scope_containment.py -q
 ```
+
+## A defect found in one of the fixes
+
+Recorded here because a manifest that lists only successful fixes is not a
+validation record.
+
+The symlink containment fix stopped following directory symlinks — correct for
+scope — and thereby stopped scanning any subtree behind a link pointing out of
+the root, with nothing recording that the scan had covered less than the
+repository. A repo laid out that way (shared-package or monorepo) was certified
+"No governance or production markers found; safe to proceed" on a scan that never
+read its source. Same fail-open as an unreadable file, through a different door,
+and inconsistent with the unreadable-file fix shipped one commit later.
+
+Repaired by separating scope from completeness: a link whose target is inside the
+root is skipped harmlessly (the walk reaches the target directly); a link whose
+target is outside is recorded in `unscannedSubtrees` and forces `verdict: STOP`.
+The visited set also now ignores a zero inode, which some Windows and network
+filesystems report and which would collide across directories.
+
+Mirror commit `b004731`, merged via #6.
 
 ## Known gaps
 
