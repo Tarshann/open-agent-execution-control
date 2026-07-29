@@ -843,7 +843,9 @@ def scan(root: Path, limit: int = 20) -> list[Candidate]:
     ]
 
     for src in _iter_source_files(root):
-        rel = str(src.relative_to(root))
+        # as_posix(): findings are compared across platforms, and _is_test_path
+        # normalizes separators itself, so this keeps the emitted path stable too.
+        rel = src.relative_to(root).as_posix()
         if _is_test_path(rel):
             continue
         ext = src.suffix.lower()

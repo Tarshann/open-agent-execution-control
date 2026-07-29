@@ -67,6 +67,7 @@ import hashlib
 import json
 import os
 import stat
+import time
 import uuid
 import warnings
 from contextlib import contextmanager
@@ -94,6 +95,12 @@ DESTINATION_CROSS_PARTY = "CROSS_PARTY"
 _DESTINATIONS = (DESTINATION_INTERNAL, DESTINATION_CROSS_PARTY)
 
 DEFAULT_TOKEN_TTL_SECONDS = 300  # 5 minutes — matches this project's existing approval-window convention
+
+# How long a redemption waits for the token lock before refusing. Only reached on
+# platforms without `fcntl` (whose blocking flock is kernel-queued and needs no
+# deadline). Comfortably longer than a redemption, which is a few small file
+# reads and one write, so hitting it means real contention or a stuck holder.
+_TOKEN_LOCK_TIMEOUT_SECONDS = 30
 
 
 class Classification:
@@ -174,6 +181,17 @@ class StrixDatasetExportTokenBindingMismatch(StrixDatasetExportError):
     """The payload, destination, transform, or classification bound into the
     token no longer matches what's being redeemed against — the token file
     (or the request) was edited after issuance, which voids it."""
+
+
+class StrixDatasetExportTokenLockUnavailable(StrixDatasetExportError):
+    """The platform supports locking but the redemption lock could not be taken.
+
+    Distinct from a platform with no locking module at all, which is a documented
+    best-effort degradation. Here the mechanism exists and *failed*, so
+    proceeding would run the read-check-write with no mutual exclusion — the
+    exact race the lock was added to close. Refusing is the fail-closed choice:
+    a redemption that did not happen can be retried, one that double-spent
+    cannot be undone."""
 
 
 class StrixDatasetExportKeyError(StrixDatasetExportError):
@@ -677,10 +695,21 @@ def _token_lock(state_dir: Path, token_id: str):
     redemption cannot leave a token permanently stuck — which a marker-file
     mutex would.
 
-    Best-effort by design: if neither `fcntl` nor `msvcrt` is available the body
-    still runs. Serialising is a correctness improvement where the platform
-    supports it, and this helper is copied into customer trees of unknown shape;
-    refusing to redeem at all on an exotic platform would be the worse failure.
+    Two failure modes, deliberately not treated alike:
+
+    * **No locking module at all** (neither `fcntl` nor `msvcrt`) — the body still
+      runs. This helper is copied into customer trees of unknown shape, and
+      refusing to redeem at all on an exotic platform would be the worse failure.
+    * **A locking module exists and the lock could not be taken** — raises
+      `StrixDatasetExportTokenLockUnavailable`. The mechanism was present and
+      failed, so continuing would run the critical section with no mutual
+      exclusion, which is the race this function exists to close. Swallowing that
+      would turn the fix into a fix-shaped no-op under load.
+
+    Windows note: ``msvcrt.locking`` with ``LK_LOCK`` retries ten times at
+    one-second intervals and then raises, so a contended redemption lasting more
+    than ten seconds used to give up *and be silently ignored*. It now polls
+    ``LK_NBLCK`` under an explicit deadline and reports failure instead.
     """
 
     lock_path = _token_path(state_dir, token_id).with_suffix(".lock")
@@ -689,15 +718,35 @@ def _token_lock(state_dir: Path, token_id: str):
     try:
         try:
             import fcntl
-
-            fcntl.flock(fd, fcntl.LOCK_EX)
         except ImportError:  # pragma: no cover - non-POSIX
-            try:
-                import msvcrt
+            fcntl = None
+        try:
+            import msvcrt
+        except ImportError:
+            msvcrt = None
 
-                msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
-            except (ImportError, OSError):  # pragma: no cover
-                pass
+        if fcntl is not None:
+            # Blocking, kernel-queued: no deadline needed and no busy-wait.
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX)
+            except OSError as exc:
+                raise StrixDatasetExportTokenLockUnavailable(
+                    f"could not lock execution token {token_id!r} for redemption: {exc}"
+                ) from exc
+        elif msvcrt is not None:  # pragma: no cover - exercised on Windows only
+            deadline = time.monotonic() + _TOKEN_LOCK_TIMEOUT_SECONDS
+            while True:
+                try:
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError as exc:
+                    if time.monotonic() >= deadline:
+                        raise StrixDatasetExportTokenLockUnavailable(
+                            f"could not lock execution token {token_id!r} for redemption "
+                            f"within {_TOKEN_LOCK_TIMEOUT_SECONDS}s: {exc}"
+                        ) from exc
+                    time.sleep(0.01)
+        # else: no locking module on this platform — documented best effort.
         yield
     finally:
         os.close(fd)

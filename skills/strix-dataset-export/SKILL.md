@@ -58,11 +58,20 @@ list of non-claims.
 
    Single-use holds under concurrency, not just in sequence. The read of
    `status`, the check, and the write are one critical section held under an
-   exclusive OS-level lock on a sidecar `.lock` file. Without it, two
-   simultaneous redemptions could both read `MINTED`, both pass the check, and
-   both proceed — measured at two successful redemptions out of sixteen
+   exclusive OS-level lock on a sidecar `.lock` file. Without it, simultaneous
+   redemptions can all read `MINTED`, all pass the check, and all proceed —
+   measured, with the lock removed, at **ten successful redemptions out of ten**
    concurrent attempts on one token. A signature does not help there: both
    readers see a legitimately signed record.
+
+   Where that guarantee stops: if the platform has a locking module and the lock
+   cannot be taken, redemption is **refused**
+   (`StrixDatasetExportTokenLockUnavailable`) rather than run unserialised. If
+   the platform has no locking module at all, the redemption proceeds — a
+   deliberate best-effort degradation for exotic platforms, and the one case
+   where single-use is sequence-only. Verified on POSIX; the Windows
+   (`msvcrt`) path has a deterministic exclusion test but no completed
+   Windows run yet, per `docs/VALIDATION.md`.
 
    Trust scope, stated precisely: this makes the record tamper-**evident**
    against anything that cannot sign with this project's local key. It is not
@@ -119,6 +128,7 @@ rows, destination, requester
 - `StrixDatasetExportTokenAlreadyRedeemed` — replaying a spent token.
 - `StrixDatasetExportTokenBindingMismatch` — payload, destination, transform, or classification changed since minting.
 - `StrixDatasetExportTokenSignatureInvalid` — the token record itself was edited after minting (its signature covers `status`, `expiresAt` and `tokenId`, which `bindingHash` does not), or it is unsigned, or signed by a key absent from the local registry.
+- `StrixDatasetExportTokenLockUnavailable` — the platform has a locking module but the redemption lock could not be taken, so the read-check-write would run without mutual exclusion. Refused rather than run unserialised. A platform with *no* locking module at all is a separate, documented best-effort case and does not raise.
 - `StrixDatasetExportKeyError` — the local Ed25519 signing key is missing, corrupt, or `cryptography` isn't installed.
 - `StrixDatasetExportReceiptPersistenceError` — the export ran but the receipt couldn't be written durably.
 

@@ -4,17 +4,21 @@ What was actually run, on what, with what result. Written so a third party can
 reproduce it and so the pass count cannot be quoted without its conditions.
 
 Produced for pull request #2, extended by #4 (claim scoping), #5 (marketplace
-re-point), #6 (a fail-open found in one of the fixes), #9 (licence), and #10 (the
+re-point), #6 (a fail-open found in one of the fixes), #9 (licence), #10 (the
 review of #8 — `strix-dataset-export`, contributed from another branch — and the
-four fixes it produced). Every fix recorded here is **merged into public `main`**
-— nothing below describes a pending proposal. This revision of the manifest is
-itself the only thing outstanding.
+four fixes it produced), #12 (merged-state accounting), and this branch (a second
+platform, and the three defects it exposed).
+
+Every fix through #12 is **merged into public `main`**. The Windows fixes in
+[Windows](#windows--the-second-platform) are on this branch and verified on Linux;
+their Windows re-run is outstanding and labelled as such wherever it matters.
 
 ## Scope of this manifest
 
 This records **repository-layer validation only**: the onboarding domain model,
 the strix-wire analyzer, the approval helpers, and the dataset-export governance
-helper, exercised in-process against fixture repositories and synthetic rows.
+helper, exercised in-process against fixture repositories and synthetic rows, on
+Linux and Windows.
 
 It does **not** record an end-to-end hosted run. No part of this manifest
 demonstrates a real client onboarded through a hosted console, a hosted policy
@@ -26,19 +30,19 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Measured at | `458b822` — merge of pull request #10 into `main` |
-| Which is | the head of public `main`, and the parent of this manifest revision |
+| Base | `3f819b0` — merge of pull request #12, head of public `main` |
+| Measured at | this branch, one commit above that base |
+| Windows failures reported against | `8f45610` (`main` content at that time; unchanged in the affected files) |
 | Working tree | clean at time of run |
 
-Earlier revisions of this manifest cited a base SHA rather than a tip, because a
-manifest cannot contain its own hash. That caveat no longer applies to the
-numbers below: they were re-run **on the merge commit itself**, after #10 landed,
-so the commit named above is exactly the tree that produced them. The only commit
-after it is the one carrying this paragraph, which touches this file alone.
+A manifest cannot contain its own hash, so a tip carrying this file cannot cite
+itself. Where a revision has been able to name the exact tree it measured, it has
+— the Linux totals for #10 were re-run on merge commit `458b822`. This revision
+adds code, so its numbers come from the branch tip rather than from `main`.
 
 `main` also contains `99ac613` (merge `e4ab265`, pull request #11) — a README
 scope callout contributed from another branch. It is documentation-only, changes
-no skill code or test, and both totals below were measured with it present.
+no skill code or test, and every total below was measured with it present.
 
 To confirm:
 
@@ -46,7 +50,7 @@ To confirm:
 git rev-parse HEAD && python3 -m pytest skills -q -rs
 ```
 
-The commits carrying the four fixes, so a reader can review them without going
+The commits behind the review of #8, so a reader can review them without going
 through the pull request:
 
 | Commit | Contents |
@@ -55,18 +59,25 @@ through the pull request:
 | `1601e4f` | Finding 1 — token record signing |
 | `9f138f9` | Findings 2, 3 and 4 — Merkle construction, redemption atomicity, corrupt-token typing |
 | `458b822` | merge of #10 into `main` |
+| `8f45610` | merged-state accounting (#12); the tree the first Windows run was made against |
 
-## Environment
+## Environments
 
-| | |
-|---|---|
-| OS | Ubuntu 24.04.4 LTS |
-| Platform | `Linux-6.18.5-x86_64-with-glibc2.39` |
-| Python | 3.11.15 (GCC 13.3.0) |
-| pytest | 9.1.1 |
-| cryptography | 41.0.7 (system, `/usr/lib/python3/dist-packages`) |
-| cffi | 2.1.0 (**installed during the session**, `/usr/local/lib/python3.11/dist-packages`) |
-| Node | v22.22.2 (not exercised by these tests) |
+Two platforms, both measured. The second was added after the Linux-only runs were
+found to be hiding two defects — see [Windows](#windows--the-second-platform).
+
+| | Linux (primary) | Windows (second) |
+|---|---|---|
+| OS | Ubuntu 24.04.4 LTS | Windows, `win32` |
+| Platform | `Linux-6.18.5-x86_64-with-glibc2.39` | — |
+| Python | 3.11.15 (GCC 13.3.0) | 3.11.2544.0, **Windows Store build** (`WindowsApps`) |
+| pytest | 9.1.1 | 9.1.1 |
+| cryptography | 41.0.7 (system, `/usr/lib/python3/dist-packages`) | 45.0.7 (wheel) |
+| cffi | 2.1.0 (**installed during the session**) | 2.0.0 |
+| Node | v22.22.2 (not exercised by these tests) | — |
+
+The Windows Python being the Store build matters and is recorded deliberately: it
+sandboxes handle duplication, which is what exposed the harness defect below.
 
 ## Command
 
@@ -84,30 +95,36 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `270 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `231 passed, 39 skipped` · 0 failed |
+| **Linux, cffi installed** | `271 passed` · 0 skipped |
+| **Linux, fresh clone of this image** (no cffi) | `231 passed, 40 skipped` · 0 failed |
+| **Windows** | see [Windows](#windows--the-second-platform) — 6 failed on first run, both causes now fixed, **re-run pending** |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
 
-Both were re-measured on `458b822` after the merge, not carried forward from the
-pre-merge branch run. They are unchanged from it — expected, since a merge commit
-of an already-tested branch alters no file, but a manifest that reports a merged
-commit without having run it is reporting an inference.
+The Linux totals were re-measured on the merge commit after each merge, not
+carried forward from the pre-merge branch run. They are unchanged by the merges
+themselves — expected, since a merge commit of an already-tested branch alters no
+file, but a manifest that reports a merged commit without having run it is
+reporting an inference. The count rose from 270 to 271 with the Windows fixes,
+which replaced one contended round with three new lock tests.
 
 ### The signing-dependent tests
 
-39 tests need a working Ed25519 backend and skip without one — 14% of the suite:
+40 tests need a working Ed25519 backend and skip without one — 15% of the suite:
 
 | Suite | Skipped | What stops being proven |
 |---|---|---|
 | `strix-wire` | 2 | The **granted** branch of the approval gate — the path that signs a receipt. Refusal without an explicit boolean is still proven. |
-| `strix-dataset-export` | 37 | Receipt tampering detection, offline chain verification, self-approval refusal, the adapter-never-invoked denial paths, and the whole token lifecycle — i.e. most of the evidence and verifiability claims. |
+| `strix-dataset-export` | 38 | Receipt tampering detection, offline chain verification, self-approval refusal, the adapter-never-invoked denial paths, the whole token lifecycle, and every redemption-lock test — i.e. most of the evidence and verifiability claims. |
 
-Worth stating plainly: 37 of `strix-dataset-export`'s 88 tests (42%) do not run in
+Worth stating plainly: 38 of `strix-dataset-export`'s 89 tests (43%) do not run in
 a clean checkout, and they include the ones that substantiate its
 independent-verifiability claims. **Install `requirements-test.txt` before treating
 that suite's green result as meaningful.**
+
+Counted from `-v` output, not `-rs`: `-rs` groups skips by source line, so
+parametrized cases collapse and its list totals 37 where the real figure is 40.
 
 That fraction rose from 31% when the token record became signed: minting now needs
 the key, so the token-lifecycle tests are signing-gated too. The alternative was
@@ -129,6 +146,127 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `test_scope_containment.py` | whole module skips without POSIX symlink support |
 | `test_report_integrity.py` (3 sites) | skips on Windows, or if the filesystem rejects a control character in a filename |
 
+## Windows — the second platform
+
+Every number above this section was Linux-only, and this manifest previously said
+so and claimed nothing about Windows. That was honest but not sufficient: two
+defects were sitting in code the Linux suite structurally could not reach. A
+Windows run found both.
+
+**First Windows run** (before the fixes below):
+
+```
+6 failed, 252 passed, 12 skipped in 8.36s
+```
+
+The 12 skips were the expected platform gates — 8 in `test_scope_containment.py`
+(POSIX symlinks), 3 in `test_report_integrity.py` (control characters are illegal
+in Windows filenames), 1 for the `fcntl`-only lock probe. The 6 failures were two
+distinct causes, and **neither was a flaky test**.
+
+### W1 — reports used platform-native path separators (product defect)
+
+Three failures in `test_preflight_fails_closed.py`, all of this shape:
+
+```
+AssertionError: assert ['src\\billing\\charge.py'] == ['src/billing/charge.py']
+```
+
+`preflight.py`, `scanner.py` and `analyze.py` each built report paths with
+`str(path.relative_to(root))`, which yields `os.sep`. So the same repository
+produced `src/billing/charge.py` on Linux and `src\billing\charge.py` on Windows,
+in `unreadableFiles`, `unscannedSubtrees`, `symlinksSkipped`, scanner findings and
+the helper-copy list. These strings are operator-facing and meant to be diffed and
+quoted as evidence, so platform-dependent output is a defect in the report, not a
+detail of the host.
+
+Fixed by emitting `.as_posix()` at all three sites. `scanner._is_test_path()`
+already normalized separators internally, so test-path exclusion was behaving
+correctly on Windows — only the emitted string was wrong.
+
+**Discrimination.** The three tests were already correct and already
+discriminating; they asserted the POSIX form and failed on the native one. What
+was missing was not test quality but platform coverage — and note that on Linux
+`str()` and `as_posix()` are identical, so **no Linux run can ever catch a
+regression here.** The guard for W1 is Windows-only, by nature. The first Windows
+run is its discrimination evidence.
+
+### W2 — the contended redemption probe could not start on Windows (harness defect)
+
+Three failures, one per round of
+`test_concurrent_redemption_spends_the_token_exactly_once`:
+
+```
+PermissionError: [WinError 5] Access is denied
+  ... multiprocessing/reduction.py, in duplicate: _winapi.DuplicateHandle(
+```
+
+`ProcessPoolExecutor` startup duplicates a pipe handle, and the Windows Store
+build of Python sandboxes that call. The probe never reached a redemption, so the
+"6 failed" said nothing about whether the lock holds — and it failed on precisely
+the one platform whose lock implementation nothing else covered.
+
+Rewritten to launch N independent `subprocess.Popen` children (the outer
+`subprocess` call already worked on that Python) released together through a
+barrier file: each child signals readiness, then spins until a `go` file appears.
+A harness failure now `pytest.fail`s with an explicit "this is a harness failure,
+not a lock result" message, so the two can never again be confused.
+
+**This made the test stronger, not merely portable.** With the lock disabled:
+
+| Probe | Redemptions that succeeded |
+|---|---|
+| Old, `ProcessPoolExecutor` (16 workers) | 2 of 16 |
+| New, `Popen` + barrier (10 racers) | **10 of 10** |
+
+The pool's own scheduling was serialising the racers; an explicit barrier makes
+the race deterministic instead of incidental. Rounds dropped from 3 to 2 and
+racers from 16 to 10, which is affordable precisely because the signal is no
+longer probabilistic.
+
+### W3 — the Windows lock branch silently degraded to no lock (product defect)
+
+Found by reading `_token_lock` in light of W2 — not by a failing test, because no
+test could reach it:
+
+```python
+msvcrt.locking(fd, msvcrt.LK_LOCK, 1)
+except (ImportError, OSError):
+    pass
+```
+
+`LK_LOCK` retries ten times at one-second intervals and then raises, and that
+raise was **caught and ignored**. On Windows, a redemption contended for more than
+ten seconds would proceed with no mutual exclusion at all — the fix for Finding 3
+becoming a fix-shaped no-op under exactly the load it exists for. The `# pragma: no
+cover - non-POSIX` on that branch was the visible tell that nothing exercised it.
+
+Now two cases, deliberately not alike:
+
+| Situation | Behaviour |
+|---|---|
+| No locking module on the platform at all | proceeds — documented best effort, unchanged |
+| A locking module exists and the lock cannot be taken | raises `StrixDatasetExportTokenLockUnavailable` |
+
+The second is the fail-closed choice: a refused redemption is retryable, a
+double-spend is not. Windows now polls `LK_NBLCK` against an explicit
+`_TOKEN_LOCK_TIMEOUT_SECONDS = 30` deadline rather than relying on `LK_LOCK`'s
+undocumented-in-practice ten-second give-up.
+
+Both cases are now tested on Linux by injecting a failing and an absent locking
+module, so the distinction is pinned on any platform — and the deterministic
+exclusion probe gained an `msvcrt` branch, so it runs on Windows instead of
+skipping.
+
+### What Windows still does not prove
+
+The fixes above are verified on Linux (271 passed; mutations below). **The Windows
+re-run has not happened yet**, so the following remain unmeasured rather than
+established: that `msvcrt.locking` actually excludes across processes; that the
+barrier probe starts cleanly under the Store build; that the 12 skips fall to 11
+now the exclusion probe covers Windows. Until a Windows run is pasted in, this
+section reports one measured failure set and a set of fixes verified elsewhere.
+
 ## Per-file breakdown (as run, cffi present)
 
 | Suite | Tests | What it pins |
@@ -142,8 +280,8 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
 | `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
-| `strix-dataset-export/tests/` (19 files) | 88 | Policy-before-execution, token binding/replay/expiry, token record signing, **concurrent-redemption atomicity**, **Merkle construction**, receipt tampering, offline chain verification, doc drift |
-| **Total** | **270** | |
+| `strix-dataset-export/tests/` (19 files) | 89 | Policy-before-execution, token binding/replay/expiry, token record signing, **concurrent-redemption atomicity** (deterministic exclusion on both POSIX and Windows, plus a barrier-released contended probe), **lock-unavailable fail-closed vs no-module best-effort**, **Merkle construction**, receipt tampering, offline chain verification, doc drift |
+| **Total** | **271** | |
 
 ## Discrimination evidence
 
@@ -167,6 +305,9 @@ worktree for the strix-wire work, by mutation for the dataset-export work:
 | Merkle: leaf count bound (Finding 2) | Returned the bare pairwise root | 3 failed |
 | Merkle: strict proof positions (Finding 2) | Reinstated the silent fall-through to "right" | 1 failed |
 | Redemption atomicity (Finding 3) | Disabled the token lock | 4 failed |
+| Report path separators (W1) | — | **Not discriminable on Linux**: `str()` and `as_posix()` are identical here. Caught by the Windows run, which is its only possible guard. |
+| Lock failure is fail-closed (W3) | Restored the swallow (`except OSError: pass`) | 1 failed |
+| The lock itself, after the probe rewrite (W2) | Took no lock at all | 3 failed — the deterministic probe plus both contended rounds, each reporting 10 of 10 redemptions |
 
 Reproducing the worktree method:
 
@@ -400,7 +541,14 @@ validated. None are addressed by this manifest.
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
 9. No browser readiness view.
-10. Verifier **independence is not established by this code.**
+10. **No completed Windows run of the current tree.** The first Windows run found
+    W1 and W2 above; the fixes are verified on Linux only. `msvcrt.locking`'s
+    cross-process exclusion is therefore still unproven — see
+    [What Windows still does not prove](#what-windows-still-does-not-prove).
+11. **W1 has no automated guard on Linux.** Report paths are asserted in POSIX
+    form, which `str()` also produces on POSIX, so a regression to native
+    separators would pass every Linux run. Only a Windows run can catch it.
+12. Verifier **independence is not established by this code.**
     `EvidenceVerificationResult.verified_by` is an *attribution* field: it
     requires a non-empty name, which prevents an anonymous verdict, but nothing
     checks that the named tool is independent or was actually executed. A caller
