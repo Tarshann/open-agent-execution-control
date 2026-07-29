@@ -1638,7 +1638,11 @@ export function governedActionLocal<T>(
       relianceResult,
     );
   }
-  if (rawDecision === "REQUIRE_APPROVAL" && !approvalGranted) {
+  // `!== true`, not `!approvalGranted`: this is an execution gate, so only an
+  // explicit boolean true counts as "a human confirmed this run". Truthiness
+  // would let an ambiguous value through from an untyped caller — the strings
+  // "no" and "false" are both truthy in JS.
+  if (rawDecision === "REQUIRE_APPROVAL" && approvalGranted !== true) {
     throw new StrixLocalApprovalRequired(`${capabilityId}: ${reason} (approval not granted)`);
   }
   // --- everything above runs BEFORE operation(); nothing below may

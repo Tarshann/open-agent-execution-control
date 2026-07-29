@@ -1601,7 +1601,11 @@ def governed_action_local(
             "The protected operation was not called.",
             reliance_result,
         )
-    if raw_decision == "REQUIRE_APPROVAL" and not approval_granted:
+    # `is not True`, not `not approval_granted`: this is an execution gate, so
+    # only an explicit boolean True counts as "a human confirmed this run".
+    # Truthiness would let an ambiguous value through — approval_granted="no"
+    # and approval_granted="false" are both truthy strings.
+    if raw_decision == "REQUIRE_APPROVAL" and approval_granted is not True:
         raise StrixLocalApprovalRequired(f"{capability_id}: {reason} (approval not granted)")
     # --- everything above runs BEFORE operation(); nothing below may
     # --- execute unless policy cleared, every declared reliance

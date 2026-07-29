@@ -80,6 +80,20 @@ FORBIDDEN_IN_ANALYSIS = [
     "write_bytes",
     "eval(",
     "exec(",  # exec_module (importlib, own bundle) tokenizes apart — no hit
+    # pathlib equivalents of the os.* mutators above: os.unlink is listed, but
+    # Path.unlink() reaches the same syscall through a different name.
+    ".unlink(",
+    ".rmdir(",
+    ".mkdir(",
+    ".touch(",
+    ".rename(",
+    # NOT ".replace(" — that is str.replace, used for path normalization. The
+    # filesystem one is os.replace, listed above by its full name.
+    ".chmod(",
+    ".symlink_to(",
+    ".hardlink_to(",
+    ".writelines(",
+    ".truncate(",
 ]
 
 
@@ -103,16 +117,42 @@ def test_vendored_preflight_and_scanner_are_equally_inert():
 
 
 def test_every_open_in_the_analysis_stack_is_read_only():
+    """Every open() in the analysis stack must be read-only.
+
+    Parsed rather than regex-matched: the previous `\\bopen\\(([^)]*)\\)`
+    pattern stopped at the first ')', so a nested call in the arguments hid the
+    mode, and it only recognised a *literal* mode string — `open(p, mode)` with
+    a variable slipped through. The AST sees the real call either way.
+    """
+    import ast
+
     for name, src in (
         ("analyze.py", ANALYZE_SRC),
         ("preflight.py", PREFLIGHT_SRC),
         ("scanner.py", SCANNER_SRC),
     ):
-        for m in re.finditer(r"\bopen\(([^)]*)\)", src):
-            args = m.group(1)
-            assert not re.search(r"['\"][^'\"]*[wax+][^'\"]*['\"]", args.split(",", 1)[1] if "," in args else ""), (
-                f"{name}: open() with a writable mode: open({args})"
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            opened = (isinstance(func, ast.Name) and func.id == "open") or (
+                isinstance(func, ast.Attribute) and func.attr == "open"
             )
+            if not opened:
+                continue
+            mode_args = list(node.args[1:2]) + [
+                kw.value for kw in node.keywords if kw.arg == "mode"
+            ]
+            for mode in mode_args:
+                assert isinstance(mode, ast.Constant) and isinstance(mode.value, str), (
+                    f"{name}: open() mode is not a literal, so it cannot be "
+                    f"proven read-only (line {node.lineno})"
+                )
+                assert not set(mode.value) & set("wax+"), (
+                    f"{name}: open() with a writable mode "
+                    f"{mode.value!r} (line {node.lineno})"
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +247,14 @@ def test_analysis_consent_expires_and_rescoping_requires_fresh_consent():
     assert "Never treat an earlier analysis approval as standing permission" in SKILL_FLAT
 
 
+# A hardcoded grant in any spelling: `approval_granted=True`,
+# `approval_granted = True`, `approvalGranted:true`, `approvalGranted = true`.
+# The exact-substring version of this check was defeated by a single space.
+HARDCODED_APPROVAL = re.compile(
+    r"approval[_-]?granted\s*[:=]\s*(?:True|true)\b", re.IGNORECASE
+)
+
+
 def test_offline_mode_never_hardcodes_a_standing_approval():
     # The one-run Phase 4 approval must live in the run command (env var),
     # never as a literal in committed source — a hardcoded True would be a
@@ -214,15 +262,42 @@ def test_offline_mode_never_hardcodes_a_standing_approval():
     # wrap patterns the agent copies are the fenced code blocks; prose may
     # mention the anti-pattern, code blocks must never contain it.
     code_blocks = re.findall(r"```[a-z]*\n(.*?)```", SKILL_MD, flags=re.S)
-    offending = [
-        b
-        for b in code_blocks
-        if "approval_granted=True" in b or "approvalGranted: true" in b
-    ]
+    offending = [b for b in code_blocks if HARDCODED_APPROVAL.search(b)]
     assert offending == [], "a copyable wrap pattern hardcodes the approval flag"
     assert "STRIX_WIRE_RUN_APPROVED" in SKILL_MD
     assert "Never write a literal" in SKILL_FLAT
     assert "denied by default" in SKILL_FLAT
+
+
+def test_no_shipped_helper_hardcodes_the_approval_flag():
+    # The scan above only covered SKILL.md. The helpers are what actually gets
+    # copied into a customer's tree, so they must be clean too — in any
+    # spelling, in any of the four files.
+    for name in (
+        "governed_action.py",
+        "governed_action_local.py",
+        "governedAction.ts",
+        "governedAction.local.ts",
+    ):
+        source = (SKILL_DIR / "helpers" / name).read_text(encoding="utf-8")
+        # Strip comments/docstring prose: the anti-pattern may be *named* in a
+        # warning, it may not be *written* as a default or an assignment.
+        stripped = re.sub(r"#.*$|//.*$", "", source, flags=re.M)
+        stripped = re.sub(r'"""(?:.|\n)*?"""', "", stripped)
+        stripped = re.sub(r"/\*(?:.|\n)*?\*/", "", stripped)
+        hits = HARDCODED_APPROVAL.findall(stripped)
+        assert hits == [], f"{name} hardcodes an approval grant: {hits}"
+
+
+def test_the_approval_gate_requires_an_explicit_boolean():
+    # Truthiness is not consent: `approval_granted="no"` must not execute.
+    # Pinned at the source level for both offline helpers because this is the
+    # single line that stands between a REQUIRE_APPROVAL verdict and a real
+    # irreversible call. The behavioral proof is in test_approval_gate.py.
+    py = (SKILL_DIR / "helpers" / "governed_action_local.py").read_text(encoding="utf-8")
+    ts = (SKILL_DIR / "helpers" / "governedAction.local.ts").read_text(encoding="utf-8")
+    assert 'raw_decision == "REQUIRE_APPROVAL" and approval_granted is not True' in py
+    assert 'rawDecision === "REQUIRE_APPROVAL" && approvalGranted !== true' in ts
 
 
 def test_harness_prompts_are_echoes_not_approvals():

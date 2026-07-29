@@ -17,8 +17,13 @@ Section-F coverage (docs/consent-architecture.md):
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
 import os
+import sys
 from pathlib import Path
+
+import pytest
 
 from conftest import (
     SKILL_DIR,
@@ -267,20 +272,6 @@ def test_missing_node_is_one_remediation_not_a_stop(analyze_mod, tmp_path, monke
 # declining execution creates no execution evidence.
 # ---------------------------------------------------------------------------
 
-WRAPPED_CHARGE_PY = (
-    "import stripe\n"
-    "from strix_wire import governed_action\n"
-    "\n"
-    "def charge(amount, token):\n"
-    "    action = governed_action(\n"
-    '        capability_id="payment.charge",\n'
-    '        payload={"amount": amount, "currency": "usd"},\n'
-    "        operation=lambda: stripe.Charge.create(\n"
-    '            amount=amount, currency="usd", source=token\n'
-    "        ),\n"
-    "    )\n"
-    "    return action.result\n"
-)
 
 
 def test_skipping_the_wrap_changes_zero_files(analyze_mod, workspace):
@@ -292,32 +283,88 @@ def test_skipping_the_wrap_changes_zero_files(analyze_mod, workspace):
     assert tree_snapshot(workspace["child"]) == before
 
 
-def test_applying_the_wrap_executes_no_consequential_action(tmp_path):
-    # Simulate exactly what an approved Phase 3 does — copy the helper file,
-    # rewrite the call site — and prove the wrapped operation never fired.
+WRAPPED_CHARGE_LOCAL = '''\
+import os
+import pathlib
+
+from strix_wire_local import governed_action_local
+
+SENTINEL = pathlib.Path({sentinel})
+WORKSPACE = pathlib.Path({workspace})
+
+
+def charge(amount):
+    action = governed_action_local(
+        "payment.charge",
+        "charge_card",
+        {{"amount": amount, "currency": "usd"}},
+        lambda: SENTINEL.write_text("the consequential action ran"),
+        # The wrap SKILL.md prescribes: run-scoped, never hardcoded.
+        approval_granted=os.environ.get("STRIX_WIRE_RUN_APPROVED") == "1",
+        workspace_root=WORKSPACE,
+    )
+    return action.result
+'''
+
+
+def _apply_the_wrap(tmp_path: Path) -> tuple[Path, Path]:
+    """Do exactly what an approved Phase 3 does: copy the helper into the repo
+    (3b) and rewrite the call site (3c). Returns (repo root, sentinel path)."""
     root = make_python_repo(tmp_path / "wrapme")
     sentinel = root / "SIDE_EFFECT_FIRED"
-    charge = root / "src" / "billing" / "charge.py"
-    charge.write_text(
-        CHARGE_WITH_SENTINEL.format(sentinel=repr(str(sentinel)))
+    (root / "strix_wire_local.py").write_bytes(
+        (SKILL_DIR / "helpers" / "governed_action_local.py").read_bytes()
     )
-    # 3b: copy the helper; 3c: rewrite the call site (file edits only).
-    (root / "strix_wire.py").write_bytes(
-        (SKILL_DIR / "helpers" / "governed_action.py").read_bytes()
+    (root / "src" / "billing" / "charge.py").write_text(
+        WRAPPED_CHARGE_LOCAL.format(
+            sentinel=repr(str(sentinel)), workspace=repr(str(root))
+        )
     )
-    charge.write_text(WRAPPED_CHARGE_PY)
+    return root, sentinel
+
+
+def _import_wrapped(root: Path):
+    """Import the rewritten call site as the customer's code would."""
+    sys.path.insert(0, str(root))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "wrapped_charge_under_test", root / "src" / "billing" / "charge.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(str(root))
+
+
+def test_applying_the_wrap_executes_no_consequential_action(tmp_path):
+    # Editing files is not executing them: after the wrap is applied, nothing
+    # has run and no evidence exists.
+    root, sentinel = _apply_the_wrap(tmp_path)
     assert not sentinel.exists(), "applying the wrap must not execute the action"
-    # And no execution evidence exists anywhere.
     assert not (root / ".strix").exists()
 
 
-CHARGE_WITH_SENTINEL = (
-    "import pathlib\n"
-    "\n"
-    "def charge(amount, token):\n"
-    "    pathlib.Path({sentinel}).write_text('the consequential action ran')\n"
-    "    return 'charged'\n"
-)
+def test_the_wrapped_call_site_refuses_to_run_without_the_run_approval(
+    tmp_path, monkeypatch
+):
+    # The real invariant: the wrap is not merely inert on disk — when the
+    # customer's code CALLS it without the run-scoped approval, the governed
+    # operation is refused and the side effect never happens.
+    root, sentinel = _apply_the_wrap(tmp_path)
+    monkeypatch.delenv("STRIX_WIRE_RUN_APPROVED", raising=False)
+    module = _import_wrapped(root)
+    local = importlib.import_module("strix_wire_local")
+
+    with pytest.raises(local.StrixLocalApprovalRequired):
+        module.charge(2500)
+
+    assert not sentinel.exists(), "the wrapped operation ran without approval"
+    receipts = list((root / ".strix").rglob("*.json")) if (root / ".strix").exists() else []
+    assert not [p for p in receipts if "keys" not in p.parts], (
+        "evidence was recorded for an action that never ran"
+    )
 
 
 def test_declined_execution_leaves_no_evidence(analyze_mod, workspace):
