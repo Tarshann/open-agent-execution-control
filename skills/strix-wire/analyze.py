@@ -37,8 +37,16 @@ authorization. In a single process it performs, in order:
   7. helper integrity     — SHA-256 of every bundled helper, compared against
                             any copy already present in the repository.
 
-What this script must NEVER do — enforced by construction and pinned by
-``tests/test_consent_boundary.py``:
+What this script must NEVER do. Be precise about how that is enforced: there
+is NO runtime sandbox here. The guarantee is that the code contains no such
+call, and that the test suite fails if one appears — ``test_consent_contract``
+scans the source (and the vendored preflight/scanner) for write, subprocess and
+network primitives and AST-checks every ``open()`` mode, while
+``test_consent_boundary`` and ``test_scope_containment`` assert behaviorally,
+via the interpreter's audit hook and before/after tree hashes, that a run reads
+only in-scope paths and writes nothing. That is absence-of-capability plus
+regression pressure — not a mechanism that would stop a deliberately modified
+copy of this file:
 
   - write, create, delete, move, or chmod any file (its only output is
     stdout/stderr);
@@ -119,8 +127,8 @@ TEMP_SEGMENTS = frozenset(
 )
 
 # Bundled helper files whose integrity the analysis attests, and the names
-# a copy may have been given inside a customer repository (4a in SKILL.md
-# renames the Python helpers on copy).
+# a copy may have been given inside a customer repository (Phase 3b in
+# SKILL.md renames the Python helpers on copy).
 BUNDLED_HELPERS = (
     "helpers/governed_action.py",
     "helpers/governedAction.ts",

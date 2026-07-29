@@ -52,7 +52,7 @@ presented as though they are equally important:
 
 | Consent class | What it covers | How it is asked |
 |---|---|---|
-| **Analysis consent** (mechanical) | Every read-only step: folder inspection, preflight, runtime detection, repository check, scanning, candidate analysis, temporary-path exclusion, helper reading, helper-integrity comparison | ONE authorization, ONE command (`analyze.py`), disclosed by ONE card |
+| **Analysis consent** (mechanical) | Every read-only step: folder inspection, repository check, preflight, runtime detection, scanning, candidate analysis, temporary-path exclusion, helper reading, helper-integrity comparison | ONE authorization, ONE command (`analyze.py`), disclosed by ONE card |
 | **Action authorization** (governance) | Anything that can modify code or cause an action: applying the wrap; executing the governed call | A separate, explicit, per-decision approval — never merged, never inferred |
 
 Invariants — every one of these is pinned by
@@ -68,8 +68,13 @@ Invariants — every one of these is pinned by
 6. No signed evidence is claimed before an evaluated run occurs (PROOF-1).
 7. Broad "allow analysis" permission can never become a reusable bypass for
    later commands: analysis consent expires at the end of the run, and the
-   analyzer is incapable of writing, installing, executing, or reaching the
-   network by construction.
+   analyzer contains no primitive for writing, installing, executing, or
+   reaching the network. Note what that guarantee rests on — the *absence* of
+   those calls, pinned by source scans and by behavioral tests (audit hook,
+   before/after tree hashes). There is no runtime sandbox confining the
+   process, so it is not a defence against a deliberately modified copy of
+   the analyzer; it is a defence against the analysis grant quietly growing
+   new capability.
 
 > **Claim discipline (Sandbox Mode):** the helper's final step posts a receipt
 > (`POST /api/v1/decisions/{decisionId}/receipt`) that Ed25519-signs the
@@ -164,10 +169,13 @@ subtree unreadable → STOP ("we didn't finish looking" is never reported as
 quickstart — suggest a smaller sandbox repo or a user-pointed function.
 
 `analyze.py` performs, in a single read-only process, everything the old flow
-spread across eight to ten separate prompts: scope guard → preflight →
-runtime detection → repository check → consequential-action scan → candidate
-analysis with automatic temporary-path exclusion → helper-integrity
-comparison. Its exit codes: `0` complete (`verdict: OK` or `NO_CANDIDATES`),
+spread across eight to ten separate prompts: scope guard → **repository check
+(stat-only)** → preflight → runtime detection → consequential-action scan →
+candidate analysis with automatic temporary-path exclusion → helper-integrity
+comparison. The repository check comes **before** anything reads file content,
+so a directory that is not a recognized repository is refused while nothing has
+been read — the analysis grant cannot be repurposed as a generic directory
+reader. Its exit codes: `0` complete (`verdict: OK` or `NO_CANDIDATES`),
 `3` preflight STOP (fail closed), `4` remediation required, `2` bad
 invocation.
 
@@ -179,7 +187,7 @@ diffs as separate commands — every one of those phases already runs inside
 prompt; that is a consent-architecture violation, not thoroughness. If
 `analyze.py` itself errors, **fail closed**: report it and stop — do NOT
 "helpfully" fall back to running the phases as individual commands, which
-would both resurrect the eleven-prompt experience and bypass the disclosed
+would both resurrect the eight-to-ten-prompt experience and bypass the disclosed
 consent card. (`preflight.py` and `scanner.py` remain runnable standalone for
 debugging outside this onboarding flow.)
 
@@ -226,6 +234,22 @@ short-lived sandbox credential the first time the helper runs — at the
 the user for credentials, do NOT block on them, and do NOT write any key into
 a committable file — only `.env.local` or shell exports already covered by
 `.gitignore`.
+
+> **Say what the sandbox verdict is and is not.** The auto-provisioned sandbox
+> tenant `AUTO_EXECUTE`s exactly this skill's closed set of
+> irreversible-mutation capability ids (the strix-platform `policy.ts` sandbox
+> override). So on the unconfigured path the kernel's ALLOW is **not** the
+> outcome of a risk assessment — it is a permissive demo tenant answering
+> "yes" by configuration. The human approval at Phase 4 is what authorizes
+> that run; the kernel is not adding a second, independent gate.
+>
+> This is deliberate (a stranger with no account still gets a real, signed,
+> independently verifiable decision), but it is the one place the flow is
+> permissive by default rather than fail-closed. Report it honestly: the
+> receipt proves *a governed decision was recorded and signed*, not *a risk
+> policy evaluated and permitted this action*. Never describe a sandbox ALLOW
+> as evidence that the action passed a policy review. With a real tenant, that
+> second gate exists; say which one the user got.
 
 ---
 
@@ -644,8 +668,13 @@ staged for their review.
 Chosen at Phase 3 ("Apply the wrapper offline"). Everything else — the
 analysis authorization, the findings review, both approval cards — is
 identical; only the helper, the execution, and the terminal contract differ.
-See `docs/architecture/local-mode-strix-wire-v1.md` (solo-builder-core) for
-the full design note, receipt schema, key lifecycle, and threat model.
+The full design note, receipt schema, key lifecycle and threat model live in
+the **solo-builder-core** repository, at `docs/architecture/local-mode-strix-wire-v1.md`
+— that path is relative to *that* repo, not this one, and is not redistributed
+here. Offline Mode's trust scope is restated in full in the helper's own module
+docstring (`helpers/governed_action_local.py`), which ships with this skill; use
+that when the private repo is not to hand, and never drop its
+`LOCAL_MACHINE_ASSERTION` wording when reporting a verdict.
 
 ### Offline helper + wrap
 
@@ -855,6 +884,17 @@ scope as everything else in Offline Mode.
   happens on any LATER, unattended invocation, the gate is doing precisely
   its job: the committed wrap grants nothing at rest, and each future run
   needs its own explicit human approval.
+- **(Offline Mode) `STRIX_WIRE_RUN_APPROVED` is a convention, not a
+  mechanism**: the helper never reads it. It takes `approval_granted` as a
+  parameter and requires a literal boolean `True`/`true`; the wrap's
+  `os.environ.get(...) == "1"` expression is what ties that parameter to one
+  command. So the "per-run" property lives in **how the variable is set**, not
+  in the helper. Set it inline on the single approved command
+  (`STRIX_WIRE_RUN_APPROVED=1 python run_once.py`). Never `export` it in a
+  shell profile, a `.env` file, a Dockerfile, or a CI environment block —
+  that converts a one-run approval into a standing one, and every later
+  invocation in that environment will execute without asking anyone. If you
+  need it in CI, scope it to the single step that runs the approved command.
 - **(Offline Mode) `cryptography` missing, or local key
   missing/corrupt/mismatched**: stop, surface the helper's
   `StrixLocalKeyError` message verbatim, never fall back to an unsigned

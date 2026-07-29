@@ -22,10 +22,17 @@ The first three are pure-advisory and need no runtime. `strix-wire` is the bridg
 from the open advisory layer to the Strix runtime — open skill, commercial control
 plane.
 
-The methodology itself is vendored here as
-[`strix-governance-review-framework-v1.md`](strix-governance-review-framework-v1.md) —
-the frozen 13-section / 4-axis contract every lens produces, so the skills are
-self-contained.
+The methodology itself — the frozen 13-section / 4-axis contract every lens
+produces — is vendored as `strix-governance-review-framework-v1.md` alongside
+the review skills in the upstream
+[`Strixgov/skills`](https://github.com/Strixgov/skills) repository, so those
+skills resolve their cited contract offline.
+
+> **What this repository actually contains.** This mirror carries the
+> `/strix-wire` skill (`skills/strix-wire/`) and its consent architecture
+> (`docs/consent-architecture.md`), plus the `strix-personal` and
+> `strix-verifier` plugins. The three review lenses and the SGRF spec live
+> upstream and are installed via the marketplace below, not from this tree.
 
 ## Install
 
@@ -117,7 +124,9 @@ checked for drift against the frozen spec, then synced here at release time.
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Strix's open trust primitives (the
+MIT — see the
+[`LICENSE`](https://github.com/Strixgov/skills/blob/main/LICENSE) in the
+upstream repository. Strix's open trust primitives (the
 [`@strixgov/verifier`](https://www.npmjs.com/package/@strixgov/verifier) and the
 tool-gateway) are MIT too; the hosted runtime/control plane is the commercial
 layer.
