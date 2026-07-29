@@ -333,6 +333,7 @@ def test_verification_for_a_different_action_is_refused(project):
         ob.VerificationVerdict.LEGACY_UNSIGNED,
         ob.VerificationVerdict.COMPLIANCE_VIOLATION,
         ob.VerificationVerdict.KID_NOT_FOUND,
+        ob.VerificationVerdict.ERROR,
     ],
 )
 def test_a_non_proof_bearing_verdict_fails_the_proof_stage(project, verdict):
@@ -348,6 +349,32 @@ def test_a_non_proof_bearing_verdict_fails_the_proof_stage(project, verdict):
     assert project.state is ob.OnboardingState.PROOF_FAILED
     assert project.is_ready is False
     assert "Not proven" in project.proof_claim()
+
+
+def test_error_is_distinct_from_every_other_refusal(project):
+    """`ERROR` exists because the real verifier returns it.
+
+    Handed this repository's `local-receipt-v1`, `npx @strixgov/verifier
+    receipt` prints `Status: ERROR` / `unknown schemaVersion` and exits 2 — it
+    supports tool-gateway schemaVersion "1" and "2" only. Recorded in
+    docs/PROOF-ATTEMPT.md.
+
+    Without this term an operator meeting that outcome had to pick a verdict
+    that says something false: KID_NOT_FOUND (the key resolved fine),
+    LEGACY_UNSIGNED (the record is signed), or COMPLIANCE_VIOLATION (nothing
+    was found non-compliant). Collapsing "could not check" into "checked and
+    failed" is the same class of error as collapsing "we did not finish
+    looking" into "we looked and it is clean".
+    """
+    assert ob.VerificationVerdict.ERROR.value == "ERROR"
+    assert ob.VerificationVerdict.ERROR not in ob._PROOF_BEARING_VERDICTS
+    # Not silently equal to any other refusal, so a report cannot blur them.
+    others = {
+        ob.VerificationVerdict.KID_NOT_FOUND,
+        ob.VerificationVerdict.LEGACY_UNSIGNED,
+        ob.VerificationVerdict.COMPLIANCE_VIOLATION,
+    }
+    assert ob.VerificationVerdict.ERROR not in others
 
 
 @pytest.mark.parametrize(

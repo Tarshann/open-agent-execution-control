@@ -565,16 +565,29 @@ it is documented as a declared test transform that certifies nothing.
 ## Known gaps
 
 Required before the hosted Console onboarding objective could be considered
-validated. None are addressed by this manifest.
+validated. Item 5 is closed by [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md); item 6 is
+narrowed by it from "not attempted" to a named blocker. The rest are not addressed
+by this manifest.
 
 1. No hosted tenant onboarding run (no hosted API exists in this repository).
 2. No credential-vault binding test — the model accepts references only.
 3. No adapter connectivity test against a real non-production integration.
 4. No policy-denial or approval-required test through a hosted decision service.
-5. **No real governed action executed, and therefore no evidence id.**
-6. **No public verifier output.** No `npx @strixgov/verifier <id>` run against a
-   publicly resolvable record is included, so "anyone can check it" is
-   unproven here.
+5. ~~No real governed action executed, and therefore no evidence id.~~
+   **Closed.** One executed, mutating a file on disk, decision
+   `REQUIRE_APPROVAL_GRANTED`, evidence id `local_ev_19280411de58494ebd98ef099e9d8fee`,
+   signature valid under this repository's own offline check. See
+   [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md).
+6. **The published verifier cannot verify this repository's receipts.** No longer
+   "not attempted" — attempted, and refused with a specific error:
+   `buildReceiptCanonicalPayload: unknown schemaVersion 'local-receipt-v1'`
+   (`@strixgov/verifier@1.20.0`, `src/index.mjs:1309`). Its `receipt`
+   subcommand supports the tool-gateway schema `"1"` and `"2"` only; this
+   repository's `local-receipt-v1` is a different schema family. The hosted
+   route needs a hosted record, and the no-auth `strix_verify` MCP tool returned
+   `requires approval`. So **"anyone can check it" remains unproven, now for a
+   named and reproducible reason** — see [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md)
+   for what would close it.
 7. No cross-tenant isolation test at the persistence or API layer — the tests
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
@@ -600,12 +613,20 @@ validated. None are addressed by this manifest.
 
 ## A proof bundle would need
 
-Not produced here. For a future release to claim independent verifiability, it
-should ship:
+[`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md) assembles every item on this list — and
+is still **not** a proof bundle, because the one element that cannot be
+self-supplied is missing:
 
-- commit SHA;
-- evidence id and the receipt itself;
-- signing key id (`kid`) and the public JWKS location;
-- the exact verifier command and its version or checksum;
-- the expected verdict;
-- the trust-scope statement (what the verdict does and does not establish).
+| Element | Status in `PROOF-ATTEMPT.md` |
+|---|---|
+| commit SHA | ✅ `f46cee5` |
+| evidence id and the receipt itself | ✅ real, executed, quoted in full |
+| signing key id (`kid`) and public key | ✅ `local-744c02d8284506d0`, exported as JWKS |
+| the exact verifier command and its version | ✅ `npx @strixgov/verifier@1.20.0 receipt … --jwks …` |
+| the expected verdict | ✅ stated — and **not obtained** |
+| the trust-scope statement | ✅ `LOCAL_MACHINE_ASSERTION`, stated as such |
+
+That is the useful lesson: a bundle can have every field populated and still prove
+nothing, because the verdict has to come from somebody else. A document that
+carried all six rows and quietly wrote `VERIFIED` in the fifth would look
+identical to a real bundle from the outside.

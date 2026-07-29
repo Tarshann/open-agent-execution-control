@@ -296,6 +296,7 @@ not this skill's:
 | `LEGACY_UNSIGNED` | **no** | Honest, and not a failure — but a brand-new onboarding has no business producing one, and it cannot support a proof claim. |
 | `COMPLIANCE_VIOLATION` | **no** | Verification failed. The real INVALID. |
 | `KID_NOT_FOUND` | **no** | Cannot verify (usually a stale JWKS). Distinct from invalid. |
+| `ERROR` | **no** | The verifier ran and could not process the record at all — wrong schema, malformed input. Distinct from every row above: the key may have resolved fine and nothing was found non-compliant. This is what `npx @strixgov/verifier receipt` returns for a `local-receipt-v1` file, so it is a real outcome an operator will meet. See [`docs/PROOF-ATTEMPT.md`](../../docs/PROOF-ATTEMPT.md). |
 
 A verification whose `evidence_id` differs from the smoke test's is refused: a
 proof for a different action proves nothing about this one. An
