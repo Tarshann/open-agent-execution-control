@@ -351,7 +351,7 @@ def helper_integrity(root: Path, source_files: list[Path]) -> dict:
             identical = False
         copies.append(
             {
-                "path": str(f.relative_to(root)),
+                "path": f.relative_to(root).as_posix(),  # platform-stable; see preflight.rel
                 "bundled_name": counterpart,
                 "identical": identical,
             }

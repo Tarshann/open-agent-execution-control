@@ -139,8 +139,11 @@ def scan(root: Path) -> dict:
         markers.append({"marker": marker, "kind": kind, "path": path})
 
     def rel(path: Path) -> str:
+        # as_posix(), not str(): this string goes into a report an operator reads
+        # and may diff or quote as evidence, so the same repository must produce
+        # the same path on every platform. str() yields backslashes on Windows.
         try:
-            return str(path.relative_to(root))
+            return path.relative_to(root).as_posix()
         except ValueError:  # pragma: no cover - defensive
             return path.name
 
