@@ -764,6 +764,28 @@ def _is_test_path(path: str) -> bool:
     return stem.endswith((".test", ".spec"))
 
 
+_UNSAFE_FOR_DISPLAY = re.compile(r"[^\x20-\x7e]")
+
+
+def _safe(value: object, limit: int = 160) -> str:
+    """Render repository-controlled text as one inert, single-line token.
+
+    Paths and matched source lines come straight from the scanned repo and are
+    printed for a human to act on. Raw, a crafted filename or line can carry
+    ANSI escapes (repaint or erase surrounding output), embedded newlines
+    (forge extra numbered candidates), or bidi overrides (show a different
+    path than the one matched) — all legal on disk. --json is left exact:
+    JSON already escapes control characters.
+    """
+    text = str(value)
+    for ch in ("\t", "\n", "\r"):
+        text = text.replace(ch, " ")
+    text = _UNSAFE_FOR_DISPLAY.sub("?", text)
+    if len(text) > limit:
+        text = text[: limit - 3] + "..."
+    return text
+
+
 def _within_root(path: Path, root: Path) -> bool:
     """True when ``path`` — fully resolved, so every symlink component is
     followed — still lands inside ``root``.
@@ -885,8 +907,9 @@ def _format_human(candidates: list[Candidate]) -> str:
     for i, c in enumerate(candidates, start=1):
         marker = "" if c.first_proof_eligible else "  (observe-only — not first-proof eligible)"
         lines.append(
-            f"{i}. [{c.confidence}] {c.file}:{c.line}  ({c.capability_id}){marker}\n"
-            f"   {c.snippet.strip()}"
+            f"{i}. [{_safe(c.confidence, limit=8)}] {_safe(c.file)}:"
+            f"{_safe(c.line, limit=12)}  ({_safe(c.capability_id, limit=48)}){marker}\n"
+            f"   {_safe(c.snippet.strip())}"
         )
     return "\n".join(lines)
 
