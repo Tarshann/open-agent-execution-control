@@ -591,7 +591,10 @@ by this manifest.
    [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md): the trust anchor is the local key,
    so the record is reproducible by anyone holding the receipt + JWKS files but
    not publicly *resolvable* — a hosted evidence record under Strix-custody keys
-   is still the hosted platform's to produce.
+   is still the hosted platform's to produce. The projection's design —
+   why v1, the field mapping, the laundering guards, and the
+   verifiable-vs-resolvable distinction — is documented in
+   [`EVIDENCE-INTEROP.md`](./EVIDENCE-INTEROP.md).
 7. No cross-tenant isolation test at the persistence or API layer — the tests
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
