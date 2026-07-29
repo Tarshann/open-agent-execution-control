@@ -69,9 +69,10 @@ list of non-claims.
    (`StrixDatasetExportTokenLockUnavailable`) rather than run unserialised. If
    the platform has no locking module at all, the redemption proceeds — a
    deliberate best-effort degradation for exotic platforms, and the one case
-   where single-use is sequence-only. Verified on POSIX; the Windows
-   (`msvcrt`) path has a deterministic exclusion test but no completed
-   Windows run yet, per `docs/VALIDATION.md`.
+   where single-use is sequence-only. Cross-process exclusion is measured on
+   both POSIX (`fcntl.flock`) and Windows (`msvcrt.locking`): a second process
+   attempting a non-blocking acquire while the lock is held is refused, and
+   succeeds once it is released. See `docs/VALIDATION.md`.
 
    Trust scope, stated precisely: this makes the record tamper-**evident**
    against anything that cannot sign with this project's local key. It is not

@@ -6,12 +6,11 @@ reproduce it and so the pass count cannot be quoted without its conditions.
 Produced for pull request #2, extended by #4 (claim scoping), #5 (marketplace
 re-point), #6 (a fail-open found in one of the fixes), #9 (licence), #10 (the
 review of #8 — `strix-dataset-export`, contributed from another branch — and the
-four fixes it produced), #12 (merged-state accounting), and this branch (a second
-platform, and the three defects it exposed).
+four fixes it produced), #12 (merged-state accounting), and #13 (a second platform,
+and the three defects it exposed).
 
-Every fix through #12 is **merged into public `main`**. The Windows fixes in
-[Windows](#windows--the-second-platform) are on this branch and verified on Linux;
-their Windows re-run is outstanding and labelled as such wherever it matters.
+Every fix recorded here is **merged into public `main`** and measured on **both**
+platforms. This revision of the manifest is itself the only thing outstanding.
 
 ## Scope of this manifest
 
@@ -30,15 +29,14 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Base | `3f819b0` — merge of pull request #12, head of public `main` |
-| Measured at | this branch, one commit above that base |
-| Windows failures reported against | `8f45610` (`main` content at that time; unchanged in the affected files) |
-| Working tree | clean at time of run |
+| Measured at | `3d1e4db`, merged into `main` as `c36f420` (pull request #13) |
+| Which is | the head of public `main`, and the parent of this manifest revision |
+| Windows run | `3d1e4db` on Windows; the earlier failing run on `8f45610` |
+| Working tree | clean at time of every run |
 
-A manifest cannot contain its own hash, so a tip carrying this file cannot cite
-itself. Where a revision has been able to name the exact tree it measured, it has
-— the Linux totals for #10 were re-run on merge commit `458b822`. This revision
-adds code, so its numbers come from the branch tip rather than from `main`.
+Both platforms measured the same commit, `3d1e4db`. A manifest cannot contain its
+own hash, so the only thing not covered by that SHA is this file's own revision,
+which adds no code.
 
 `main` also contains `99ac613` (merge `e4ab265`, pull request #11) — a README
 scope callout contributed from another branch. It is documentation-only, changes
@@ -59,7 +57,9 @@ through the pull request:
 | `1601e4f` | Finding 1 — token record signing |
 | `9f138f9` | Findings 2, 3 and 4 — Merkle construction, redemption atomicity, corrupt-token typing |
 | `458b822` | merge of #10 into `main` |
-| `8f45610` | merged-state accounting (#12); the tree the first Windows run was made against |
+| `8f45610` | merged-state accounting (#12); the tree the **failing** Windows run was made against |
+| `3d1e4db` | the three Windows fixes (W1/W2/W3); the tree both platforms now measure |
+| `c36f420` | merge of #13 into `main` |
 
 ## Environments
 
@@ -97,7 +97,10 @@ reported because quoting the first without the second would overstate what ran.
 |---|---|
 | **Linux, cffi installed** | `271 passed` · 0 skipped |
 | **Linux, fresh clone of this image** (no cffi) | `231 passed, 40 skipped` · 0 failed |
-| **Windows** | see [Windows](#windows--the-second-platform) — 6 failed on first run, both causes now fixed, **re-run pending** |
+| **Windows** | `260 passed, 11 skipped` · 0 failed |
+
+260 + 11 = 271, the same total as Linux, so the two platforms ran the same suite
+and differ only in which tests their filesystem gates out.
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
@@ -139,19 +142,19 @@ dependency so this degradation is deliberate rather than accidental.
 
 ### Other conditional skips
 
-Platform-gated, and **not** triggered on Linux — all ran here:
+Platform-gated. All ran on Linux; these 11 are exactly what Windows skips:
 
-| File | Condition |
-|---|---|
-| `test_scope_containment.py` | whole module skips without POSIX symlink support |
-| `test_report_integrity.py` (3 sites) | skips on Windows, or if the filesystem rejects a control character in a filename |
+| File | Tests | Condition |
+|---|---|---|
+| `test_scope_containment.py` | 8 | whole module skips without POSIX symlink support |
+| `test_report_integrity.py` | 3 | skips on Windows, or if the filesystem rejects a control character in a filename |
 
 ## Windows — the second platform
 
-Every number above this section was Linux-only, and this manifest previously said
-so and claimed nothing about Windows. That was honest but not sufficient: two
-defects were sitting in code the Linux suite structurally could not reach. A
-Windows run found both.
+Every number above this section was once Linux-only, and this manifest said so and
+claimed nothing about Windows. That was honest but not sufficient: two defects were
+sitting in code the Linux suite structurally could not reach. A Windows run found
+both, and a third was found beside them.
 
 **First Windows run** (before the fixes below):
 
@@ -159,10 +162,22 @@ Windows run found both.
 6 failed, 252 passed, 12 skipped in 8.36s
 ```
 
-The 12 skips were the expected platform gates — 8 in `test_scope_containment.py`
-(POSIX symlinks), 3 in `test_report_integrity.py` (control characters are illegal
-in Windows filenames), 1 for the `fcntl`-only lock probe. The 6 failures were two
-distinct causes, and **neither was a flaky test**.
+**Second Windows run** (`3d1e4db`, after the fixes):
+
+```
+260 passed, 11 skipped in 7.97s
+```
+
+Zero failures, and the skip count fell by one because the deterministic exclusion
+probe now covers Windows instead of skipping. The remaining 11 are all in
+`strix-wire` — 8 symlink-scope, 3 control-character — so **every signing-gated
+test ran on Windows**, including the 38 that a clean Linux checkout skips. The two
+platforms have complementary blind spots rather than nested ones.
+
+The first run's 12 skips were the expected platform gates — 8 in
+`test_scope_containment.py` (POSIX symlinks), 3 in `test_report_integrity.py`
+(control characters are illegal in Windows filenames), 1 for the `fcntl`-only lock
+probe. Its 6 failures were two distinct causes, and **neither was a flaky test**.
 
 ### W1 — reports used platform-native path separators (product defect)
 
@@ -188,8 +203,9 @@ correctly on Windows — only the emitted string was wrong.
 discriminating; they asserted the POSIX form and failed on the native one. What
 was missing was not test quality but platform coverage — and note that on Linux
 `str()` and `as_posix()` are identical, so **no Linux run can ever catch a
-regression here.** The guard for W1 is Windows-only, by nature. The first Windows
-run is its discrimination evidence.
+regression here.** The guard for W1 is Windows-only, by nature: the first Windows
+run is its discrimination evidence, and the second (all three tests passing) is its
+fix evidence. Neither could have come from this image.
 
 ### W2 — the contended redemption probe could not start on Windows (harness defect)
 
@@ -253,19 +269,41 @@ double-spend is not. Windows now polls `LK_NBLCK` against an explicit
 `_TOKEN_LOCK_TIMEOUT_SECONDS = 30` deadline rather than relying on `LK_LOCK`'s
 undocumented-in-practice ten-second give-up.
 
-Both cases are now tested on Linux by injecting a failing and an absent locking
+Both cases are tested on Linux by injecting a failing and an absent locking
 module, so the distinction is pinned on any platform — and the deterministic
 exclusion probe gained an `msvcrt` branch, so it runs on Windows instead of
 skipping.
 
-### What Windows still does not prove
+**`msvcrt.locking` cross-process exclusion is now measured, not inferred.** In the
+second Windows run, `test_the_token_lock_excludes_a_second_holder` passed: while
+`_token_lock` held the sidecar file, a separate process attempting
+`msvcrt.locking(fd, LK_NBLCK, 1)` was refused, and acquired it once the holder
+released. That is the assertion the Windows branch previously had no test for at
+all, and it is the load-bearing one — a contended probe passing could in principle
+reflect racers that happened to serialise, whereas a non-blocking acquire being
+refused cannot.
 
-The fixes above are verified on Linux (271 passed; mutations below). **The Windows
-re-run has not happened yet**, so the following remain unmeasured rather than
-established: that `msvcrt.locking` actually excludes across processes; that the
-barrier probe starts cleanly under the Store build; that the 12 skips fall to 11
-now the exclusion probe covers Windows. Until a Windows run is pasted in, this
-section reports one measured failure set and a set of fixes verified elsewhere.
+### What Windows measured, and what it still does not
+
+Measured on Windows by the second run: W1's three report-path assertions, the
+barrier-released contended probe (2 rounds), `msvcrt` cross-process exclusion, the
+lock-unavailable fail-closed path, the no-locking-module best-effort path, and all
+38 signing-gated tests that a clean Linux checkout skips.
+
+Still **not** measured on Windows, and not claimed:
+
+- **Symlink scope containment.** All 8 `test_scope_containment.py` tests skip
+  there. Windows does have directory symlinks and junctions (`mklink /D`, `/J`),
+  and `preflight.py`'s containment logic is what stops a link out of the root
+  being followed or silently dropped — so the platform where that logic is least
+  tested is one where the feature genuinely exists. The module skips on
+  `sys.platform == "win32"` rather than probing whether this particular Windows
+  can create a symlink, which is the narrower gate it should be.
+- **Control-character report forgery.** 3 of the 11 skips; the filesystem refuses
+  the filenames the test needs, which is itself a mitigation, not a verification.
+- **The `LK_LOCK` ten-second give-up under real sustained contention.** W3's fix
+  is verified by construction and by the exclusion probe; nobody has held a
+  Windows token lock for over thirty seconds to watch the new deadline fire.
 
 ## Per-file breakdown (as run, cffi present)
 
@@ -305,7 +343,7 @@ worktree for the strix-wire work, by mutation for the dataset-export work:
 | Merkle: leaf count bound (Finding 2) | Returned the bare pairwise root | 3 failed |
 | Merkle: strict proof positions (Finding 2) | Reinstated the silent fall-through to "right" | 1 failed |
 | Redemption atomicity (Finding 3) | Disabled the token lock | 4 failed |
-| Report path separators (W1) | — | **Not discriminable on Linux**: `str()` and `as_posix()` are identical here. Caught by the Windows run, which is its only possible guard. |
+| Report path separators (W1) | Windows run, before and after | **Not discriminable on Linux** — `str()` and `as_posix()` are identical here. 3 failed before the fix, 3 passed after, both on Windows. That platform is the guard. |
 | Lock failure is fail-closed (W3) | Restored the swallow (`except OSError: pass`) | 1 failed |
 | The lock itself, after the probe rewrite (W2) | Took no lock at all | 3 failed — the deterministic probe plus both contended rounds, each reporting 10 of 10 redemptions |
 
@@ -541,14 +579,19 @@ validated. None are addressed by this manifest.
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
 9. No browser readiness view.
-10. **No completed Windows run of the current tree.** The first Windows run found
-    W1 and W2 above; the fixes are verified on Linux only. `msvcrt.locking`'s
-    cross-process exclusion is therefore still unproven — see
-    [What Windows still does not prove](#what-windows-still-does-not-prove).
+10. **Symlink scope containment is unverified on Windows.** All 8
+    `test_scope_containment.py` tests skip there, on a platform that does have
+    directory symlinks and junctions. The module gates on `sys.platform ==
+    "win32"` rather than on whether this host can actually create a symlink,
+    which is the narrower gate it should use.
 11. **W1 has no automated guard on Linux.** Report paths are asserted in POSIX
     form, which `str()` also produces on POSIX, so a regression to native
-    separators would pass every Linux run. Only a Windows run can catch it.
-12. Verifier **independence is not established by this code.**
+    separators would pass every Linux run. Only a Windows run can catch it —
+    meaning CI on Linux alone would let it back in.
+12. **No CI.** Both platforms are run by hand. Everything in this manifest is a
+    point-in-time measurement by a named human on a named machine, not a gate
+    that blocks a regression from merging.
+13. Verifier **independence is not established by this code.**
     `EvidenceVerificationResult.verified_by` is an *attribution* field: it
     requires a non-empty name, which prevents an anonymous verdict, but nothing
     checks that the named tool is independent or was actually executed. A caller
