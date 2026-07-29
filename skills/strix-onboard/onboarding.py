@@ -161,6 +161,16 @@ class VerificationVerdict(str, Enum):
     LEGACY_UNSIGNED = "LEGACY_UNSIGNED"
     COMPLIANCE_VIOLATION = "COMPLIANCE_VIOLATION"
     KID_NOT_FOUND = "KID_NOT_FOUND"
+    #: The verifier ran but could not process the record at all. Added because
+    #: it is what actually happened: `npx @strixgov/verifier receipt` prints
+    #: `Status: ERROR` and exits 2 when handed this repository's
+    #: `local-receipt-v1`, whose schema it does not support (it accepts
+    #: tool-gateway schemaVersion "1" and "2"). Before this term existed, an
+    #: operator facing that real outcome had to record one of the verdicts
+    #: above, all of which say something untrue: the key *was* resolved, the
+    #: record is *not* legacy-unsigned, and nothing was found non-compliant.
+    #: See docs/PROOF-ATTEMPT.md.
+    ERROR = "ERROR"
 
 
 #: Verdicts that actually attest an Ed25519 signature over the record.
