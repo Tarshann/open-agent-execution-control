@@ -764,8 +764,29 @@ def _is_test_path(path: str) -> bool:
     return stem.endswith((".test", ".spec"))
 
 
+def _within_root(path: Path, root: Path) -> bool:
+    """True when ``path`` — fully resolved, so every symlink component is
+    followed — still lands inside ``root``.
+
+    A link such as ``config.py -> /etc/passwd`` is listed by the walk under an
+    in-root name, so reading it would take content from outside the scanned
+    scope while the reported path still looked local.
+    """
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except OSError:
+        return False
+    return resolved == base or base in resolved.parents
+
+
 def _iter_source_files(root: Path) -> list[Path]:
-    """Yield candidate source files under root, skipping vendored junk."""
+    """Yield candidate source files under root, skipping vendored junk.
+
+    Scope containment: ``os.walk`` does not follow directory symlinks, and a
+    file symlink whose target resolves outside ``root`` is dropped here so no
+    later phase can read through it.
+    """
     out: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
         # Mutate dirnames in place so os.walk respects the skip set.
@@ -785,6 +806,8 @@ def _iter_source_files(root: Path) -> list[Path]:
             ):
                 continue
             full = Path(dirpath) / fn
+            if full.is_symlink() and not _within_root(full, root):
+                continue
             out.append(full)
     return out
 

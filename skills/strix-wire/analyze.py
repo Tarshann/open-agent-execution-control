@@ -179,6 +179,18 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _within_root(path: Path, root: Path) -> bool:
+    """True when ``path`` — fully resolved, so every symlink component is
+    followed — still lands inside ``root``. Only consulted for symlinks, so a
+    caller passing an unresolved root cannot be tripped up by it."""
+    try:
+        resolved = path.resolve()
+        base = root.resolve()
+    except OSError:
+        return False
+    return resolved == base or base in resolved.parents
+
+
 def _is_temp_path(rel_path: str) -> bool:
     segments = rel_path.replace("\\", "/").lower().split("/")
     return any(seg in TEMP_SEGMENTS for seg in segments[:-1])
@@ -293,6 +305,10 @@ def helper_integrity(root: Path, source_files: list[Path]) -> dict:
     for f in source_files:
         counterpart = COPY_NAME_TO_BUNDLED.get(f.name)
         if counterpart is None or counterpart not in bundle_hashes:
+            continue
+        # A helper-named symlink pointing outside the repo must not be hashed:
+        # reading it would take content from outside the analysis root.
+        if f.is_symlink() and not _within_root(f, root):
             continue
         try:
             identical = _sha256(f) == bundle_hashes[counterpart]
@@ -519,6 +535,15 @@ def _format_human(report: dict) -> str:
         r = scan["recommended"]
         lines.append(
             f"  RECOMMENDED {r['file']}:{r['line']}  ({r['capability_id']})"
+        )
+    skipped_links = report.get("preflight", {}).get("symlinksSkipped") or []
+    if skipped_links:
+        # Disclose scope refusals: the operator should see that the analysis
+        # declined to read through a link rather than silently covering less
+        # ground than the scope line implies.
+        lines.append(
+            f"  LINKS       {len(skipped_links)} symlink(s) not followed "
+            "(outside analysis scope)"
         )
     copies = report["helper_integrity"]["copies_in_repo"]
     if copies:
