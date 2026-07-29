@@ -38,22 +38,44 @@ def scanner_mod():
     return load_skill_module("scanner")
 
 
-@pytest.fixture
-def hostile(tmp_path: Path) -> dict:
-    """A repo that tries three escapes: a file link out, a directory link out,
-    and a directory link back to an ancestor (a cycle)."""
+def _outside_tree(tmp_path: Path) -> tuple[Path, Path]:
+    """Out-of-scope content carrying a production marker, so a successful escape
+    shows up in the verdict as well as in the recorded reads."""
     outside = tmp_path / "outside"
     (outside / "nested").mkdir(parents=True)
-    # Out-of-scope content that also carries a preflight production marker, so
-    # a successful escape is visible in the verdict as well as in the reads.
     secret = outside / "secrets.py"
     secret.write_text(f"# {SECRET}\nSTRIPE_KEY = 'sk_live_ABCDEF123456'\n")
     (outside / "nested" / "more.py").write_text(f"# {SECRET}\n{DECOY_PY}")
+    return outside, secret
 
+
+@pytest.fixture
+def hostile(tmp_path: Path) -> dict:
+    """Escapes via FILE symlinks and an in-root cycle only.
+
+    Deliberately no directory symlink out of root: that makes the scan
+    *incomplete*, which is a separate verdict (see ``escaping_dir``). Here the
+    scan can still see the whole repo, so the correct outcome is a clean OK
+    with the escapes refused.
+    """
+    outside, secret = _outside_tree(tmp_path)
     root = make_python_repo(tmp_path / "repo")
     os.symlink(secret, root / "src" / "config.py")          # file link out
-    os.symlink(outside, root / "src" / "linked_dir")        # dir link out
-    os.symlink(root, root / "src" / "loop")                 # dir link to ancestor
+    os.symlink(root / "src", root / "src" / "loop")         # dir link, in-root
+    return {"root": root, "outside": outside, "secret": secret}
+
+
+@pytest.fixture
+def escaping_dir(tmp_path: Path) -> dict:
+    """A repo whose source lives behind a directory symlink out of root.
+
+    A legitimate shared-package layout, and the case that regressed: refusing
+    to follow the link keeps the scan in scope but means it never read the
+    repo's code, so it must not certify it.
+    """
+    outside, secret = _outside_tree(tmp_path)
+    root = make_python_repo(tmp_path / "repo")
+    os.symlink(outside, root / "src" / "linked_dir")
     return {"root": root, "outside": outside, "secret": secret}
 
 
@@ -122,11 +144,43 @@ def test_helper_integrity_skips_an_escaping_helper_symlink(
 
 def test_preflight_does_not_descend_directory_symlinks(preflight_mod, hostile):
     result = preflight_mod.scan(hostile["root"])
-    reasons = [link["reason"] for link in result["symlinksSkipped"]]
-    assert reasons.count("directory symlink not followed") >= 2, result["symlinksSkipped"]
-    # Nothing from the linked-in tree is reported as an in-root marker path.
-    for marker in result["markers"]:
-        assert "linked_dir" not in marker["path"].replace("\\", "/")
+    reasons = " ".join(link["reason"] for link in result["symlinksSkipped"])
+    assert "directory symlink not followed" in reasons, result["symlinksSkipped"]
+    # An in-root link loses nothing, so it must not make the scan incomplete.
+    assert result["unscannedSubtrees"] == []
+    assert result["verdict"] == "OK"
+
+
+def test_a_directory_symlink_out_of_root_stops_instead_of_certifying(
+    preflight_mod, escaping_dir, open_recorder
+):
+    """The regression this guards: refusing to read outside the root keeps the
+    scan in scope, but a repo whose content sits behind that link was never
+    examined — and an unexamined repo cannot be reported clean.
+    """
+    with open_recorder() as rec:
+        result = preflight_mod.scan(escaping_dir["root"])
+
+    # Still in scope: nothing outside the root was read.
+    assert not _opened_outside(rec.paths, escaping_dir["outside"])
+    # But the scan is incomplete, so it must fail closed rather than say OK.
+    assert result["verdict"] == "STOP", result
+    assert result["unscannedSubtrees"] == ["src/linked_dir"] or result[
+        "unscannedSubtrees"
+    ] == [os.path.join("src", "linked_dir")]
+    assert "never examined" in result["reason"]
+    # And it must not masquerade as a governance/production finding.
+    assert result["governed"] is False and result["production"] is False
+
+
+def test_the_escaping_directory_halts_analysis_before_scanning(
+    analyze_mod, escaping_dir
+):
+    report, code = analyze_mod.run_analysis(escaping_dir["root"])
+    assert code == 3
+    assert report["verdict"] == "STOP"
+    assert report["phases_completed"] == ["scope", "repository", "preflight"]
+    assert "scan" not in report
 
 
 def _plain_repo(root: Path) -> Path:
@@ -159,10 +213,12 @@ def test_a_symlink_cycle_costs_the_scan_nothing(preflight_mod, tmp_path):
     assert looped["filesScanned"] == plain["filesScanned"], (
         "the cycle was walked: it inflated the scan beyond the real file count"
     )
-    assert looped["symlinksSkipped"] == [
-        {"path": os.path.join("src", "a", "b", "back"),
-         "reason": "directory symlink not followed"}
-    ]
+    assert len(looped["symlinksSkipped"]) == 1
+    skipped = looped["symlinksSkipped"][0]
+    assert skipped["path"] == os.path.join("src", "a", "b", "back")
+    assert "not followed" in skipped["reason"]
+    # The link points back inside the root, so nothing went unexamined.
+    assert looped["unscannedSubtrees"] == []
 
 
 def test_full_analysis_of_a_hostile_repo_stays_in_scope(
