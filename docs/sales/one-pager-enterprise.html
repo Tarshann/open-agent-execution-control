@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Strix: Execution Control for AI Agents</title>
+<style>
+  :root { --ink:#0f172a; --slate:#334155; --gold:#f59e0b; --paper:#ffffff; --line:#e2e8f0; --wash:#f8fafc; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--paper); font-size:12.5px; line-height:1.45; }
+  .page { max-width:820px; margin:0 auto; padding:0 0 24px; }
+  header { background:var(--ink); color:#fff; padding:20px 32px; display:flex; align-items:center; gap:16px; }
+  header svg { flex:none; }
+  .wordmark { font-size:24px; font-weight:800; letter-spacing:3px; }
+  .tagline { font-size:11px; color:#cbd5e1; letter-spacing:.4px; margin-top:2px; }
+  .audience { margin-left:auto; text-align:right; font-size:10.5px; color:var(--gold); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+  .hero { background:var(--wash); border-bottom:1px solid var(--line); padding:16px 32px; }
+  .hero h1 { font-size:21px; margin-bottom:4px; }
+  .hero p { color:var(--slate); font-size:13px; }
+  section { margin:14px 32px 0; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:1.2px; border-bottom:2px solid var(--gold); padding-bottom:3px; margin-bottom:8px; }
+  p { margin-bottom:6px; }
+  ol,ul { margin:4px 0 6px 18px; }
+  li { margin-bottom:4px; }
+  table { width:100%; border-collapse:collapse; margin:6px 0; }
+  th,td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--wash); font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--slate); }
+  code { font-family:Consolas,Menlo,monospace; font-size:11.5px; background:var(--wash); padding:1px 4px; border-radius:3px; }
+  .pull { background:var(--ink); color:#fff; padding:10px 14px; border-radius:6px; margin:8px 0; font-size:13px; font-weight:600; }
+  .pull em { color:var(--gold); font-style:normal; }
+  footer { margin:18px 32px 0; padding-top:8px; border-top:1px solid var(--line); font-size:10.5px; color:var(--slate); display:flex; justify-content:space-between; }
+  @media print { body{font-size:11px} .page{max-width:none} }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <svg width="44" height="44" viewBox="0 0 64 64" aria-label="Strix owl mark">
+      <path d="M32 4 L58 14 V36 C58 50 46 58 32 62 C18 58 6 50 6 36 V14 Z" fill="none" stroke="#f59e0b" stroke-width="3"/>
+      <path d="M18 20 L24 14 L26 22 Z M46 20 L40 14 L38 22 Z" fill="#f59e0b"/>
+      <circle cx="23" cy="30" r="8" fill="#fff"/><circle cx="41" cy="30" r="8" fill="#fff"/>
+      <circle cx="23" cy="30" r="3.5" fill="#0f172a"/><circle cx="41" cy="30" r="3.5" fill="#0f172a"/>
+      <path d="M32 34 L28 40 H36 Z" fill="#f59e0b"/>
+    </svg>
+    <div>
+      <div class="wordmark">STRIX</div>
+      <div class="tagline">Capability control for AI agents. Fail-closed by default. Independently verifiable.</div>
+    </div>
+    <div class="audience">Executive Brief<br>For Enterprise</div>
+  </header>
+
+  <div class="hero">
+    <h1>Models decide. Agents orchestrate. Strix controls execution.</h1>
+    <p>When an AI agent can charge cards, delete records, and send messages, "we trust the model" is not a control. Strix is.</p>
+  </div>
+
+  <section>
+    <h2>The problem</h2>
+    <p>Enterprises are handing AI agents real authority over payments, data, customer communication, and infrastructure. Existing controls were built for humans and services, not for autonomous software that decides at machine speed. Three questions now land on every CISO's and auditor's desk:</p>
+    <ol>
+      <li><strong>Can you stop a consequential action before it happens?</strong></li>
+      <li><strong>Can you prove, after the fact, exactly what happened and that it was authorized?</strong></li>
+      <li><strong>Can a third party check that proof without trusting your logs, or your vendor?</strong></li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>The Strix answer</h2>
+    <div class="pull">Nothing executes until evaluated, and every decision produces <em>cryptographically signed proof</em> anyone can verify.</div>
+    <ul>
+      <li><strong>Before:</strong> every governed action is evaluated against your policy (allow, deny, or route to a human approver) <em>before</em> it executes. A denied action never runs.</li>
+      <li><strong>After:</strong> an Ed25519-signed, timestamped receipt records what ran, when, and under what decision. Your auditor, your customer, or your own engineers can verify it with a free open-source tool (<code>npx @strixgov/verifier</code>) with zero access to your systems, and without taking Strix's word for it.</li>
+      <li><strong>Secrets stay yours:</strong> Strix stores credential <em>references</em>, never credential values. Only an action's non-secret parameters travel; never API keys, tokens, or card data.</li>
+    </ul>
+    <p>Strix is running in production today, governing live capabilities, and is currently in private beta for new tenants.</p>
+  </section>
+
+  <section>
+    <h2>Architecture: open trust, commercial control</h2>
+    <table>
+      <tr><th>Layer</th><th>What</th><th>License</th></tr>
+      <tr><td><strong>Verification</strong></td><td>Public receipt verifier. Anyone can audit any Strix record</td><td>Open (MIT)</td></tr>
+      <tr><td><strong>Methodology</strong></td><td>SGRF: a published governance-review framework scoring systems on four orthogonal axes: Capability, Governance, Runtime Enforcement, Independent Verification</td><td>Open (MIT)</td></tr>
+      <tr><td><strong>Skills</strong></td><td>Governed-action wiring and a reference onboarding workflow, runnable today with no account</td><td>Open (MIT)</td></tr>
+      <tr><td><strong>Runtime &amp; Console</strong></td><td>Hosted policy kernel, tenant management, approval routing, evidence service</td><td>Commercial</td></tr>
+    </table>
+    <p>The trust primitives are open on purpose. <strong>A proof you can only check by asking the vendor is not a proof.</strong></p>
+  </section>
+
+  <section>
+    <h2>Governance discipline you can inspect</h2>
+    <ul>
+      <li><strong>Readiness is derived, never asserted.</strong> Onboarding refuses to report a client "ready" until an external verifier's verdict is on file for the actual smoke-test evidence. Configuration alone cannot be promoted to readiness, and tests pin that rule.</li>
+      <li><strong>Approvals are decisions, not clickstreams.</strong> One scoped grant covers read-only analysis; separate explicit approvals gate any code change and any execution.</li>
+      <li><strong>A public validation manifest</strong> records what was tested, on which platforms, with what result, including what was <em>not</em> tested. Every security fix is validated by mutation testing or pre-fix reproduction, on Linux and Windows.</li>
+      <li><strong>The honesty policy is enforced in the product.</strong> The skills are contractually tested against overclaiming. A verified receipt "attests the record is signed and unmodified," never "the system is compliant." Vendors that oversell governance move your risk without reducing it.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What this means for your teams</h2>
+    <table>
+      <tr><th>Stakeholder</th><th>Outcome</th></tr>
+      <tr><td><strong>CISO / Risk</strong></td><td>Policy-enforced pre-execution control over agent actions, deny-by-default on ungoverned paths, fail-closed safety checks</td></tr>
+      <tr><td><strong>Compliance / Audit</strong></td><td>Tamper-evident, independently verifiable evidence records; the verifier is public and vendor-independent</td></tr>
+      <tr><td><strong>Engineering</strong></td><td>Minutes to a first governed action, a one-line wrap with business logic unchanged, MIT tooling with no lock-in at the trust layer</td></tr>
+      <tr><td><strong>Procurement</strong></td><td>Open-core: evaluate the full methodology and skills free before any commercial commitment</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Evaluation path: a zero-risk pilot</h2>
+    <ol>
+      <li><strong>Day 1:</strong> engineers install the open skills and wire one governed action in a sandbox repo. No account, no data shared, about 2 minutes to a signed receipt.</li>
+      <li><strong>Week 1:</strong> verify receipts independently, and run the SGRF review lenses against a system you already operate.</li>
+      <li><strong>Pilot:</strong> a hosted tenant with your own policies and approval routes governing real agent capabilities. Book a demo at strixgov.com.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <span>Strix Governance is a product of Velaris Group LLC. Open layer MIT-licensed.</span>
+    <span>Private beta &middot; <strong>strixgov.com</strong></span>
+  </footer>
+</div>
+</body>
+</html>

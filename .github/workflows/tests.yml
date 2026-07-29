@@ -1,0 +1,35 @@
+# CI for the skills suites, on both platforms the validation manifest measures.
+#
+# Why both OSes are required, not optional: docs/VALIDATION.md gap #11 records
+# that the W1 report-path fix (as_posix() at three sites) is invisible to any
+# Linux run, because str() and as_posix() are identical on POSIX. Only the
+# Windows leg can catch that regression. Gap #12 records that all prior runs
+# were by hand; this workflow is the merge gate those runs were not.
+#
+# requirements-test.txt is installed deliberately: without cffi, 40 of the 271
+# tests skip, and they are the signing/evidence ones (see the header of that
+# file). -rs keeps any remaining skips named in the log.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-test.txt
+      - name: Run the skills suites
+        run: python -m pytest skills -q -rs

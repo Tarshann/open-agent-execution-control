@@ -4,6 +4,7 @@
 # paths this repo actually owns. Result: `git add -A` can never stage a secret.
 /*
 !/.gitignore
+!/.github/
 !/.claude-plugin/
 !/plugins/
 !/strixgov-plugins/

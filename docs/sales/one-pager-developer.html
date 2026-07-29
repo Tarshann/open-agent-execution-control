@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Strix for Developers</title>
+<style>
+  :root { --ink:#0f172a; --slate:#334155; --gold:#f59e0b; --paper:#ffffff; --line:#e2e8f0; --wash:#f8fafc; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:var(--ink); background:var(--paper); font-size:12.5px; line-height:1.45; }
+  .page { max-width:820px; margin:0 auto; padding:0 0 24px; }
+  header { background:var(--ink); color:#fff; padding:20px 32px; display:flex; align-items:center; gap:16px; }
+  header svg { flex:none; }
+  .wordmark { font-size:24px; font-weight:800; letter-spacing:3px; }
+  .tagline { font-size:11px; color:#cbd5e1; letter-spacing:.4px; margin-top:2px; }
+  .audience { margin-left:auto; text-align:right; font-size:10.5px; color:var(--gold); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; }
+  h1 { font-size:21px; margin:20px 32px 4px; }
+  .sub { margin:0 32px 14px; color:var(--slate); font-size:13px; }
+  section { margin:0 32px 14px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:1.2px; border-bottom:2px solid var(--gold); padding-bottom:3px; margin-bottom:8px; }
+  p { margin-bottom:6px; }
+  ul { margin:4px 0 6px 18px; }
+  li { margin-bottom:4px; }
+  table { width:100%; border-collapse:collapse; margin:6px 0; }
+  th,td { text-align:left; padding:5px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--wash); font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--slate); }
+  code { font-family:Consolas,Menlo,monospace; font-size:11.5px; background:var(--wash); padding:1px 4px; border-radius:3px; }
+  pre { font-family:Consolas,Menlo,monospace; font-size:11.5px; background:var(--ink); color:#e2e8f0; padding:8px 12px; border-radius:6px; margin:6px 0; overflow-x:auto; }
+  pre code { background:none; padding:0; color:inherit; }
+  .faq dt { font-weight:700; margin-top:7px; }
+  .faq dd { margin-left:0; color:var(--slate); }
+  footer { margin:18px 32px 0; padding-top:8px; border-top:1px solid var(--line); font-size:10.5px; color:var(--slate); display:flex; justify-content:space-between; }
+  @media print { body{font-size:11px} .page{max-width:none} h1{margin-top:14px} }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <svg width="44" height="44" viewBox="0 0 64 64" aria-label="Strix owl mark">
+      <path d="M32 4 L58 14 V36 C58 50 46 58 32 62 C18 58 6 50 6 36 V14 Z" fill="none" stroke="#f59e0b" stroke-width="3"/>
+      <path d="M18 20 L24 14 L26 22 Z M46 20 L40 14 L38 22 Z" fill="#f59e0b"/>
+      <circle cx="23" cy="30" r="8" fill="#fff"/><circle cx="41" cy="30" r="8" fill="#fff"/>
+      <circle cx="23" cy="30" r="3.5" fill="#0f172a"/><circle cx="41" cy="30" r="3.5" fill="#0f172a"/>
+      <path d="M32 34 L28 40 H36 Z" fill="#f59e0b"/>
+    </svg>
+    <div>
+      <div class="wordmark">STRIX</div>
+      <div class="tagline">Nothing executes until evaluated. Every decision produces signed proof anyone can verify.</div>
+    </div>
+    <div class="audience">Technical<br>For Developers</div>
+  </header>
+
+  <h1>Strix for developers</h1>
+  <p class="sub">Govern one real call and walk away with a verifiable receipt. MIT-licensed skills, runs locally, no account, about 2 minutes to first signed proof.</p>
+
+  <section>
+    <h2>What it is</h2>
+    <p>Strix is capability control for AI agents: fail-closed by default, independently verifiable. The open layer ships as two Claude Code skills:</p>
+    <ul>
+      <li><strong><code>/strix-wire</code></strong> finds one consequential call site (a Stripe charge, a <code>DELETE</code>, an email send, a migration), wraps it in <code>governedAction()</code>, runs it once through a real decision path, and emits an <strong>Ed25519-signed evidence record</strong> anyone can check with the public MIT verifier.</li>
+      <li><strong><code>/strix-onboard</code></strong> is the reference onboarding workflow: tenant, systems, governed capabilities, policies and approval routes, credential <em>references</em> (never values), connectivity, one governed smoke test, then an external verifier's verdict. Readiness is <strong>derived</strong> from the verified proof, never asserted.</li>
+    </ul>
+    <p>The wrap is a thin layer: check permission, run the original call only if allowed, write signed proof. Business logic unchanged; <code>git diff</code> shows exactly what was added.</p>
+  </section>
+
+  <section>
+    <h2>Install</h2>
+    <pre>/plugin marketplace add Tarshann/open-agent-execution-control
+/plugin install strix-governance@strixgov</pre>
+    <p>Then in any non-production repo: <code>/strix-governance:strix-wire</code>. Prefer no marketplace? Clone the repo and copy the two skill folders into <code>.claude/skills/</code>.</p>
+  </section>
+
+  <section>
+    <h2>Modes</h2>
+    <table>
+      <tr><th></th><th>Sandbox Mode (default)</th><th>Offline Mode</th></tr>
+      <tr><td><strong>Account</strong></td><td>None. Auto-provisions a short-lived credential</td><td>None</td></tr>
+      <tr><td><strong>Network</strong></td><td>Up to 4 calls to strixgov.com, non-secret params only</td><td><strong>Zero</strong></td></tr>
+      <tr><td><strong>Signature</strong></td><td>Hosted kernel signs</td><td>Local key signs</td></tr>
+      <tr><td><strong>Trust claim</strong></td><td>Strix witnessed the decision</td><td>Tamper-evident, self-attested</td></tr>
+    </table>
+    <p>Have a real account? Set <code>STRIX_API_KEY</code> and <code>STRIX_TENANT_ID</code>, and your own policy governs runs instead of the sandbox default.</p>
+  </section>
+
+  <section>
+    <h2>Why it's 3 clicks, not 11</h2>
+    <p><strong>The rule: collapse mechanical permissions, never governance decisions.</strong></p>
+    <ul>
+      <li><strong>Analyze.</strong> One scoped, expiring grant covers every read-only phase in a single process. The analyzer contains <strong>no write, subprocess, socket, or network primitive</strong>, enforced by AST-level source-scan tests, an <code>open()</code> audit hook, and hostile-repo symlink-escape suites. The root is confined to your working directory, and scope containment survives symlinks.</li>
+      <li><strong>Wrap.</strong> A separate approval. You see the exact diff, plus "Actions that will execute: 0".</li>
+      <li><strong>Run once.</strong> Another separate approval. Policy evaluates <em>before</em> the call fires; a denial means the original call never runs. Offline approval rides a per-invocation env var (<code>STRIX_WIRE_RUN_APPROVED=1</code>), so committed source at rest grants nothing.</li>
+    </ul>
+    <p>Stopping after any click is a valid terminal state.</p>
+  </section>
+
+  <section>
+    <h2>Safety guarantees (tested, not asserted)</h2>
+    <ul>
+      <li><strong>Preflight fails closed.</strong> Production markers (<code>sk_live_</code>, <code>.env.production</code>, deploy domains) or existing governance mean STOP. Unreadable files mean "incomplete", never "clean".</li>
+      <li><strong>271 tests, measured on Linux and Windows</strong> at the same commit. Every security fix validated by mutation testing or a pre-fix-commit run. See <code>docs/VALIDATION.md</code>, including its known-gaps list; the manifest reports what did <em>not</em> run, too.</li>
+      <li><strong>Token and receipt discipline:</strong> signed execution tokens, atomic redemption under an OS-level lock (double-spend measured at 2 of 16 before the fix, 1 of 16 after), domain-separated Merkle nodes, leaf count bound into the root.</li>
+      <li><strong>Secrets.</strong> Credential <em>references</em> only. A <code>secret_ref</code> that looks like a secret value is refused, and the readiness view is tested to contain no credential material.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Verify anything, from anywhere</h2>
+    <pre>npx @strixgov/verifier@latest &lt;decisionId&gt;   # Status: VERIFIED</pre>
+    <p>An independent MIT tool. It recomputes hashes, resolves the key by <code>kid</code>, and verifies the signature itself. No access to your systems, and no trusting Strix's word either.</p>
+  </section>
+
+  <section class="faq">
+    <h2>FAQ</h2>
+    <dl>
+      <dt>Does the analyzer really not touch anything?</dt><dd>Its only output is stdout. The suite fails if a write, subprocess, or network primitive ever appears in it, including <code>pathlib</code> spellings and non-literal <code>open()</code> modes.</dd>
+      <dt>What does a verified receipt prove?</dt><dd>That the record is signed and unmodified. Not that your system is secure or compliant. The skill's own docs forbid overclaiming, and contract tests pin that discipline.</dd>
+      <dt>Second run says "already governed"?</dt><dd>Correct. Your first wrap is real governance, so the preflight flags it, and continuing takes an explicit yes. A deliberate speed bump.</dd>
+      <dt>Python deps?</dt><dd>Stdlib only at runtime. Install <code>requirements-test.txt</code> (cryptography) to run the signing-gated tests: 40 of 271 skip without it, and they're the evidence and verifiability ones.</dd>
+    </dl>
+  </section>
+
+  <footer>
+    <span>Open layer: MIT, Velaris Group LLC. Hosted runtime and control plane are the commercial layer.</span>
+    <span><strong>strixgov.com</strong></span>
+  </footer>
+</div>
+</body>
+</html>
