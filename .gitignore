@@ -7,4 +7,11 @@
 !/.claude-plugin/
 !/plugins/
 !/strixgov-plugins/
+!/skills/
+!/docs/
 !/README.md
+
+# Never stage build/interpreter artifacts, even inside re-included paths.
+__pycache__/
+*.pyc
+.pytest_cache/
