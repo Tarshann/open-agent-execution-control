@@ -12,11 +12,14 @@ nothing is asserted from reading code.
 
 The headline outcome, stated before the detail so it cannot be skimmed past:
 
-> A real governed action executed, produced a real signed receipt, and this
-> repository's own verification confirms the signature. The **published
-> independent verifier cannot verify it** — it does not support this
-> repository's receipt schema. The onboarding model, handed that real outcome,
-> **correctly refused to report READY.**
+> A real governed action executed and produced a real signed receipt. Handed the
+> raw `local-receipt-v1`, the published verifier **refused it** (wrong schema
+> family) and the onboarding model correctly ended at `proof_failed`. A
+> tool-gateway **projection** of the same receipt — every field honestly derived,
+> nothing invented — then returned **`Status: VERIFIED`, exit 0** from
+> `npx @strixgov/verifier@1.20.0`, and the onboarding model reached **READY** on
+> it. The trust anchor is still the local key; see the trust-scope section
+> before quoting the verdict.
 
 ## Reproducing
 
@@ -247,28 +250,104 @@ check" into "checked and failed" is the same class of error as collapsing "we di
 not finish looking" into "we looked and it is clean", which this repository has
 already fixed twice (`unreadableFiles`, `unscannedSubtrees`).
 
-## What would actually close gap 6
+## Second attempt — the export, and a VERIFIED
 
-Either:
+The section above ended at the protocol boundary. Reading the verifier's source
+dissolved the design dilemma it posed: **tool-gateway `schemaVersion: "1"` has no
+`tenantId` and no `environment`** — those exist only in v2. Its eleven canonical
+fields all have honest local sources, so Local Mode can emit v1 without inventing
+a single hosted-tenancy value.
 
-1. **The local helper emits a schema the public verifier accepts** — a
-   tool-gateway `schemaVersion: "2"` receipt, with the `tenantId`/`environment`/
-   `invocationHash` fields it requires. This is a real design decision, not a
-   patch: those fields are hosted-tenancy concepts that Local Mode deliberately
-   does not have. A local receipt claiming a `tenantId` would be asserting
-   something it cannot know.
-2. **Or a hosted evidence record exists** and `strix-verify <evidenceId>` is run
-   against it. That needs the hosted platform, which is not in this repository.
+`export_tool_gateway_receipt()` (in `governed_action_local.py`) projects a
+verified local receipt into that shape and signs the projection with the same
+local key:
 
-Until one of those, "independently verifiable receipts" is accurate about the
-*design* — the receipt is signed, hash-chained and offline-checkable — but the
-**published verifier will not check this repository's receipts today**, and no
-claim should imply otherwise.
+| Tool-gateway field | Source in the local receipt |
+|---|---|
+| `receiptId` | `evidenceId` |
+| `capabilityId`, `decision` | same fields |
+| `action` | `action.name` |
+| `invocationHash` | `action.paramsHash` |
+| `evidenceHash`, `proofChainHash`, `timestamp` | same fields (`createdAt`) |
+| `mode` | `recordMode` = `LOCAL_SIGNED_V1` — the trust scope, visible in the verifier's output |
+| `risk` | **`UNSPECIFIED`** — no risk assessment happens in Local Mode; the schema makes the field mandatory, so it states the absence instead of fabricating a tier |
 
-## Trust scope of everything above
+Two refusals are built in: a local receipt that fails its own verification is not
+exportable (the export signs fresh, so exporting a tampered record would launder
+it through a valid signature), and a receipt signed by a different key than the
+workspace's current one is not re-attributed.
 
-The signature check that *did* pass was performed by this repository's own code
-against a key in the same workspace. That is a `LOCAL_MACHINE_ASSERTION`: it
-attests that the holder of a local key produced a tamper-evident record. It is not
-independent verification, and this document is not a proof bundle — it is the
-record of an attempt, including where the attempt stopped.
+**The verifier's verdict, observed:**
+
+```
+$ npx --yes @strixgov/verifier receipt receipt-tg.json --jwks jwks.json
+  Receipt ID:        local_ev_19280411de58494ebd98ef099e9d8fee
+  Capability:        data.write
+  Action:            upgrade_customer_plan
+  Decision:          REQUIRE_APPROVAL_GRANTED
+  Risk:              UNSPECIFIED
+  Mode:              LOCAL_SIGNED_V1
+  Signing key id:    local-744c02d8284506d0
+  Hash valid:        true
+  Signature valid:   true
+  Status:            VERIFIED
+exit 0
+```
+
+And the discrimination check — the same export with `decision` forged to `ALLOW`:
+
+```
+  Decision:          ALLOW
+  Signature valid:   false
+  Status:            TAMPERED
+exit 1
+```
+
+A `VERIFIED` that could not fail would prove nothing; this one fails on a
+one-field edit.
+
+## The onboarding path, re-run on the VERIFIED verdict
+
+Same real evidence id, same model, no fixtures — only the verdict changed,
+because the verifier now actually returned one:
+
+```
+record_smoke_test            state=proof_pending   evidence=local_ev_19280411de58494ebd98ef099e9d8fee
+record_verification          state=ready           verdict=VERIFIED
+
+  [done]  Run governed smoke test
+  [done]  Verify evidence independently
+  READY   yes
+
+  VERIFIED: evidence local_ev_19280411de58494ebd98ef099e9d8fee was independently
+  checked by npx @strixgov/verifier@1.20.0 receipt (local JWKS). This attests
+  that the record is signed and unmodified — not that the governed system is
+  secure or compliant.
+```
+
+Both terminal outcomes of the onboarding machine have now been produced by real
+verifier runs: `proof_failed` on the raw receipt's `ERROR`, `ready` on the
+export's `VERIFIED`.
+
+## Trust scope of the VERIFIED — read before quoting it
+
+What `VERIFIED` means here: **independently maintained code** — a published npm
+package this repository does not control, transcribed and pinned by nothing local
+— re-derived the Ed25519 signature over the exported fields under the key in the
+supplied JWKS. **And that key is this workspace's local key.**
+
+Independent *code*, local *trust anchor*. So:
+
+- It is still a `LOCAL_MACHINE_ASSERTION`, now checkable by an external tool.
+  The verifier's own output says so: `Mode: LOCAL_SIGNED_V1`.
+- It is reproducible by **anyone holding the two files** (`receipt-tg.json`,
+  `jwks.json`) — but the record is not publicly *resolvable*: there is no hosted
+  evidence id to look up, no Strix-custody JWKS endpoint serving this key.
+- It does not attest that the governed system is secure, compliant, or that the
+  mutation was a good idea — only that this record is signed and unmodified.
+
+What would upgrade it to the hosted claim: a hosted evidence record and
+`strix-verify <evidenceId>` against Strix-custody keys. That requires the hosted
+platform, which is not in this repository. Local Mode and Hosted Mode are two
+evidence ecosystems with different trust anchors; the export makes the first one
+checkable by the second one's tool without pretending to be it.

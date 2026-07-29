@@ -52,6 +52,7 @@ repo for the full non-claims list and threat model.
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
@@ -1971,6 +1972,139 @@ class ChainSession:
 
 
 _STATUS_RANK = {"VERIFIED": 0, "UNVERIFIABLE": 1, "INVALID": 2}
+
+
+# ---------------------------------------------------------------------------
+# Tool-gateway export — make a local receipt checkable by the PUBLISHED verifier
+# ---------------------------------------------------------------------------
+
+#: The exact canonical field order of `@strixgov/verifier`'s tool-gateway
+#: `schemaVersion: "1"` receipt (its `RECEIPT_FIELD_ORDER_V1`). Deliberately v1,
+#: not v2: v2 adds `policyVersion`, `tenantId` and `environment`, and the last
+#: two are hosted-tenancy facts a local workspace does not possess — exporting
+#: v2 would mean inventing them, which is exactly the trust inflation this
+#: helper exists to prevent. Every v1 field has an honest local source.
+_TOOL_GATEWAY_V1_ORDER = (
+    "schemaVersion",
+    "receiptId",
+    "capabilityId",
+    "action",
+    "decision",
+    "risk",
+    "mode",
+    "invocationHash",
+    "evidenceHash",
+    "proofChainHash",
+    "timestamp",
+)
+
+#: No risk assessment happens in Local Mode, and the tool-gateway schema makes
+#: `risk` mandatory. "UNSPECIFIED" states that absence instead of fabricating a
+#: tier — a reader of the verified receipt sees that no risk claim was made.
+TOOL_GATEWAY_RISK_UNSPECIFIED = "UNSPECIFIED"
+
+
+def _tool_gateway_canonical(receipt: Mapping[str, Any]) -> str:
+    """Byte-identical reimplementation of the verifier's
+    ``buildReceiptCanonicalPayload`` for schemaVersion "1":
+    ``{"field":<json>,...}`` in the frozen order, no whitespace, non-ASCII
+    unescaped (JavaScript's ``JSON.stringify`` does not escape it)."""
+    parts = []
+    for field in _TOOL_GATEWAY_V1_ORDER:
+        value = receipt.get(field)
+        if value is None:
+            raise StrixLocalError(
+                f"tool-gateway export: missing canonical field {field!r}"
+            )
+        parts.append(
+            f"{json.dumps(field)}:{json.dumps(value, separators=(',', ':'), ensure_ascii=False)}"
+        )
+    return "{" + ",".join(parts) + "}"
+
+
+def export_tool_gateway_receipt(record: Mapping[str, Any], *, state_dir: Path) -> dict[str, Any]:
+    """Project a verified local receipt into the tool-gateway ``schemaVersion:
+    "1"`` shape that the published ``npx @strixgov/verifier receipt`` command
+    accepts, and sign that projection with the same local key.
+
+    Every field is derived from the already-signed local receipt — nothing is
+    invented, which is why this emits v1 and not v2 (see
+    ``_TOOL_GATEWAY_V1_ORDER``). ``risk`` is the one field with no local
+    source and carries ``UNSPECIFIED`` explicitly.
+
+    **Trust scope, stated before anyone quotes the verdict.** A ``VERIFIED``
+    from the published verifier on this export means: *independently
+    maintained code* re-derived an Ed25519 signature under the key in the JWKS
+    you handed it — and that key is this workspace's local key. Independent
+    code, local trust anchor. It is still a ``LOCAL_MACHINE_ASSERTION``, now
+    checkable by a tool this repository does not control; it is NOT a hosted
+    Strix custody claim, and the record is reproducible only by someone
+    holding the receipt and JWKS files, not publicly resolvable.
+
+    The export refuses a record that does not verify locally first: a
+    projection of an unverified record would launder a tampered receipt
+    through a fresh valid signature.
+    """
+    vr = _verify_local_record_for_reliance(record, state_dir)
+    if vr["status"] != "VERIFIED":
+        raise StrixLocalError(
+            f"refusing to export an unverified local receipt "
+            f"(status={vr['status']!r}, cryptoCode={vr.get('cryptoCode')!r}); "
+            "exporting it would launder a bad record through a fresh signature"
+        )
+
+    payload = record["payload"]
+    action = payload.get("action") or {}
+    exported = {
+        "schemaVersion": "1",
+        "receiptId": payload["evidenceId"],
+        "capabilityId": payload["capabilityId"],
+        "action": action.get("name") or "unknown",
+        "decision": payload["decision"],
+        "risk": TOOL_GATEWAY_RISK_UNSPECIFIED,
+        "mode": payload["recordMode"],  # LOCAL_SIGNED_V1 — labels the trust scope
+        "invocationHash": action.get("paramsHash") or payload["evidenceHash"],
+        "evidenceHash": payload["evidenceHash"],
+        "proofChainHash": payload["proofChainHash"],
+        "timestamp": payload["createdAt"],
+        "signingKeyId": payload["signingKeyId"],
+    }
+    key = generate_or_load_key(state_dir)
+    if key.kid != payload["signingKeyId"]:
+        raise StrixLocalError(
+            f"current signing key {key.kid!r} is not the key that signed this "
+            f"receipt ({payload['signingKeyId']!r}); refusing to re-attribute it"
+        )
+    Ed25519PrivateKey, _ = _require_cryptography()
+    priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(key.private_key_hex))
+    canonical = _tool_gateway_canonical(exported)
+    signature = priv.sign(canonical.encode("utf-8"))
+    exported["signature"] = base64.urlsafe_b64encode(signature).decode("ascii").rstrip("=")
+    return exported
+
+
+def export_jwks(state_dir: Path) -> dict[str, Any]:
+    """The local registry's public keys in the JWKS form the published
+    verifier's ``--jwks`` flag loads. Public material only."""
+    registry_path = state_dir / "keys" / "registry.json"
+    keys = []
+    if registry_path.exists():
+        data = json.loads(registry_path.read_text(encoding="utf-8"))
+        for kid, meta in (data.get("keys") or {}).items():
+            pub_hex = meta.get("publicKeyHex")
+            if not pub_hex:
+                continue
+            keys.append(
+                {
+                    "kty": "OKP",
+                    "crv": "Ed25519",
+                    "alg": "EdDSA",
+                    "use": "sig",
+                    "kid": kid,
+                    "x": base64.urlsafe_b64encode(bytes.fromhex(pub_hex)).decode("ascii").rstrip("="),
+                }
+            )
+    return {"keys": keys}
 
 
 def verify_local_chain(records: Sequence[dict[str, Any]], *, state_dir: Path) -> dict[str, Any]:
