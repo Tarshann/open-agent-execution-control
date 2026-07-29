@@ -10,6 +10,8 @@
 !/skills/
 !/docs/
 !/README.md
+!/LICENSE
+!/requirements-test.txt
 
 # Never stage build/interpreter artifacts, even inside re-included paths.
 __pycache__/
