@@ -22,9 +22,19 @@ repository. See [Known gaps](#known-gaps).
 
 | | |
 |---|---|
-| Commit | `7708d18d38eaaeaf705b8104ae2643bb77eca8e6` |
+| Base (public `main`) | `0ca6966` — merge of pull request #2 |
+| Measured at | this branch, two commits above that base |
 | Branch | `claude/strix-console-onboarding-bcbe3a-vg8w4i` |
-| Working tree | clean (no uncommitted changes at time of run) |
+| Working tree | clean at time of run |
+
+The base SHA is cited rather than the tip because a manifest cannot cite its own
+hash, and a rebase changes the tip while leaving the tested content identical.
+The two commits above the base add four contract tests and this document; nothing
+else in the suite differs from `main`. To confirm at any tip:
+
+```bash
+git rev-parse HEAD && python3 -m pytest skills -q -rs
+```
 
 ## Environment
 
@@ -54,8 +64,8 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **As run here** (cffi installed) | `176 passed` · 0 skipped |
-| **Fresh clone of this image** (no cffi) | `174 passed, 2 skipped` |
+| **As run here** (cffi installed) | `180 passed` · 0 skipped |
+| **Fresh clone of this image** (no cffi) | `178 passed, 2 skipped` |
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
@@ -100,8 +110,8 @@ Platform-gated, and **not** triggered on Linux — all ran here:
 | `strix-wire/tests/test_preflight_fails_closed.py` | 5 | An unreadable file makes the scan incomplete, not clean |
 | `strix-onboard/tests/test_onboarding_state.py` | 56 | State machine, tenant binding, proof discipline |
 | `strix-onboard/tests/test_readiness_view.py` | 15 | The readiness view cannot flatter or be forged |
-| `strix-onboard/tests/test_skill_contract.py` | 14 | SKILL.md pinned to the model |
-| **Total** | **176** | |
+| `strix-onboard/tests/test_skill_contract.py` | 18 | SKILL.md pinned to the model, incl. the non-claims table |
+| **Total** | **180** | |
 
 ## Discrimination evidence
 

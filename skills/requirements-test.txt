@@ -5,7 +5,7 @@
 # CFFI C extension. If `_cffi_backend` is missing, `cryptography` does not raise
 # an ordinary ImportError — the Rust binding panics — and the two signing-path
 # tests in test_approval_gate.py skip. The suite then reports
-# "174 passed, 2 skipped" instead of 176, and the *granted* branch of the
+# "178 passed, 2 skipped" instead of 180, and the *granted* branch of the
 # approval gate is never exercised.
 #
 # Always run with -rs so skips are visible:
