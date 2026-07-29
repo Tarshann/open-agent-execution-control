@@ -1,6 +1,6 @@
 ---
 name: strix-onboard
-description: Take a new client organization from no configuration to its first independently verifiable governed action. Creates or selects a tenant, registers external systems, defines governed capabilities, configures policies and approval routes, binds credentials through the secret boundary, validates connectivity, runs one governed smoke test through the real Strix decision path, verifies the resulting proof independently, and reports a truthful readiness state. Use when the user asks to "onboard a client", "set up a new organization", "onboard a tenant", "get a new client to a first governed action", or runs /strix-onboard.
+description: Take a new client organization from no configuration to its first governed action with an externally checked receipt. Creates or selects a tenant, registers external systems, defines governed capabilities, configures policies and approval routes, binds credential references through the secret boundary, validates connectivity, runs one governed smoke test through the real Strix decision path, records an external verifier's verdict, and reports a truthful readiness state. This is the open reference workflow, not the hosted Strix Console. Use when the user asks to "onboard a client", "set up a new organization", "onboard a tenant", "get a new client to a first governed action", or runs /strix-onboard.
 ---
 
 # /strix-onboard — a new client to its first verifiable governed action
@@ -47,10 +47,38 @@ goes through the existing decision path
 ([`../strix-wire/helpers/`](../strix-wire/helpers/)); verification goes through
 the existing verifier surface. This skill records what those returned.
 
+It is also not a production provisioning system. It holds no database, performs
+no authentication, calls no hosted tenant API, integrates no credential vault,
+and runs no adapter connectivity jobs — an operator supplies those results. What
+has actually been validated, and what has not, is recorded in
+[`docs/VALIDATION.md`](../../docs/VALIDATION.md). Read its known-gaps list before
+describing an onboarding outcome to anyone.
+
 **The Strix Console.** The hosted console UI is the commercial control plane and
 is not in this repository. This skill is the onboarding control logic and the
 operator workflow in the form this repo actually ships: a skill plus an explicit
 domain model. The readiness view (`status.py`) is the console screen's content.
+
+### Never say these things
+
+A governance tool that oversells itself is worse than none — it moves the trust
+without earning it. When reporting on a project, do not claim:
+
+| Do not say | Say instead |
+|---|---|
+| "The Console onboards clients end to end" | "The reference onboarding workflow completed for this project" |
+| "Production tenant isolation is proven" | "Records are bound to the operator-context tenant and cross-tenant attachments are refused" |
+| "Independently verified" (unqualified) | "`<tool>` returned `<verdict>` for evidence `<id>`" — name the tool, the verdict, and the id |
+| "Anyone can check this signature" | Only when a publicly resolvable evidence id and a runnable command exist. Otherwise state that verification was local. |
+| "Secrets are in the Strix vault" | "A credential reference was recorded; the secret stays in the operator's secret store" |
+| "Every action is now governed" | "One capability on one system is governed" |
+| "This proves the system is compliant / secure" | "The record is signed and unmodified" |
+| "The approval is one-time and non-replayable" | "The approval is scoped by convention to one command; the helper takes a boolean" |
+| "No data leaves the machine" | Name the mode. Offline Mode contacts nothing; Sandbox Mode makes up to four calls. |
+| "Shell scripts are scanned" | `.sh` files are enumerated but no pattern targets them today. |
+
+If the operator asks for a claim in the left column, give them the right column
+and explain the difference. That difference is the product.
 
 ---
 

@@ -1,0 +1,20 @@
+# Test dependencies for the skills suites.
+#
+# Why this file exists: without it, the cryptographic path degrades SILENTLY.
+# Local Mode signs receipts with Ed25519, which `cryptography` provides via a
+# CFFI C extension. If `_cffi_backend` is missing, `cryptography` does not raise
+# an ordinary ImportError — the Rust binding panics — and the two signing-path
+# tests in test_approval_gate.py skip. The suite then reports
+# "174 passed, 2 skipped" instead of 176, and the *granted* branch of the
+# approval gate is never exercised.
+#
+# Always run with -rs so skips are visible:
+#
+#     python3 -m pytest skills -q -rs
+#
+# The refusal branch — the invariant that actually matters — has no
+# cryptographic dependency and always runs.
+
+pytest>=7.0
+cryptography>=41.0        # Ed25519 signing for Local Mode receipts
+cffi>=1.15               # cryptography's C binding; absent => signing tests skip

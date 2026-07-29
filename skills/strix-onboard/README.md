@@ -1,8 +1,18 @@
 # strix-onboard — a new client to its first verifiable governed action
 
-`ONBOARD-1`. Takes one client organization from no configuration to a governed
-action whose proof has been **independently verified**, and refuses to call it
-ready until that verification exists.
+`ONBOARD-1`. A **reference implementation** of the onboarding path: the domain
+contracts, the state machine, and the operator workflow that carry one client
+organization from no configuration to a governed action whose receipt has been
+checked by an external verifier — and that refuse to report ready until an
+accepted verdict is on file.
+
+> **Scope.** This is the open skills-layer reference model, not the hosted Strix
+> Console and not a production provisioning system. It holds state, derives
+> readiness, and records what the decision path and the verifier returned. It
+> does not persist to a database, authenticate an operator, call a hosted tenant
+> API, integrate a credential vault, or run adapter connectivity jobs — those
+> surfaces are not in this repository. Validation is repository-layer only; see
+> [`docs/VALIDATION.md`](../../docs/VALIDATION.md), including its known gaps.
 
 ```text
 New client → tenant → systems → governed actions → policies + approvals
@@ -57,9 +67,10 @@ stage it is the failure *of*. `retry_from_failure()` is the one backward move,
 valid only from a failure state, and it discards the stale results of the
 attempt that failed so nothing downstream can pass on them.
 
-## Tenant isolation
+## Tenant binding
 
-Tenant identity comes from trusted server-side context and nowhere else:
+Tenant identity comes from the operator context, not from a caller-supplied
+field:
 
 ```python
 project = start_onboarding(context, project_id="onb_001")   # no tenant_id parameter
@@ -72,6 +83,13 @@ even if a query layer returns one. Cross-tenant capability is
 `OperatorContext(admin_scope=True)` — explicit, and recorded in the project's
 history.
 
+**Called binding rather than isolation, deliberately.** This is an in-process
+attachment check. Production tenant isolation additionally requires
+authenticated tenant context, server-side authorization, query scoping or
+row-level security, and service boundaries — none of which are in this
+repository. The check is defence in depth for a layer that has the rest; it is
+not a substitute for it.
+
 ## Proof discipline
 
 No proof claim may exceed what can be independently verified, so:
@@ -83,11 +101,19 @@ No proof claim may exceed what can be independently verified, so:
   `READY`;
 - a verification for a different evidence id is refused — a proof for another
   action proves nothing about this one;
-- an unattributed verdict is refused, because verification that names no verifier
-  is not independent;
+- an unattributed verdict is refused — a verdict naming no verifier cannot be
+  audited back to anything;
 - `proof_claim()` states what was checked and explicitly disclaims the rest:
   a verified record attests that the record is signed and unmodified, **not**
   that the governed system is secure or compliant.
+
+**The limit of that last point.** `verified_by` is attribution, not proof of
+independence. Requiring it non-empty stops an anonymous verdict, but nothing
+here checks that the named tool is independent of Strix or was executed at all —
+a caller could pass any string. Independence comes from an operator running the
+public verifier out-of-band against a publicly resolvable record. This repo
+ships no such record, so nothing in it demonstrates end-to-end independent
+verifiability; `docs/VALIDATION.md` lists what a real proof bundle would need.
 
 ## Not the execution authority
 
