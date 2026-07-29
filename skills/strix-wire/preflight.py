@@ -27,7 +27,10 @@ Contract (pinned by tests/test_strix_wire_preflight.py):
     didn't finish looking" is never reported as "we looked and it's clean".
   - scope containment: no directory symlink is followed and no file symlink
     leaving the root is read, so a marker "found" is always this repo's own.
-    Skipped links appear in ``symlinksSkipped`` rather than vanishing.
+    Skipped links appear in ``symlinksSkipped`` rather than vanishing. A
+    directory symlink whose target leaves the root also makes the scan
+    INCOMPLETE (``unscannedSubtrees`` -> STOP): refusing to read it keeps the
+    scan in scope, but it cannot then certify what it never saw.
 
 Usage:
     python3 preflight.py [--root .] [--json]
@@ -125,6 +128,7 @@ def scan(root: Path) -> dict:
     truncated = False
     links_skipped: list[dict] = []
     unreadable_files: list[str] = []
+    unscanned_subtrees: list[str] = []
     visited_dirs: set[tuple[int, int]] = set()
 
     def add(marker: str, kind: str, path: str) -> None:
@@ -170,15 +174,38 @@ def scan(root: Path) -> dict:
                         continue
                     # Never descend a directory symlink: it can point outside
                     # the analysis root, and a link back to an ancestor makes
-                    # this stack-based walk loop until the file bound (or
-                    # forever, if the cycle holds no readable text file).
-                    # Real subdirectories are still reached directly, so
-                    # nothing genuinely in scope is missed.
+                    # this stack-based walk re-scan the same files down every
+                    # level of the loop.
+                    #
+                    # Where it points decides whether the scan is still
+                    # COMPLETE, which is a different question from whether it
+                    # is in scope:
+                    #   - target inside the root: the target is reached
+                    #     directly by the walk anyway, so skipping the link
+                    #     loses nothing;
+                    #   - target outside the root: that content is never
+                    #     examined. A repo whose source lives behind such a
+                    #     link (a shared-package layout, say) would otherwise
+                    #     be certified "no markers found" on the strength of
+                    #     a scan that never read its code — the same fail-open
+                    #     as an unreadable file, through a different door.
                     if is_link:
-                        skip_link(entry, "directory symlink not followed")
+                        if _within_root(entry, root):
+                            skip_link(
+                                entry,
+                                "directory symlink not followed; target is "
+                                "inside the root and is walked directly",
+                            )
+                        else:
+                            skip_link(
+                                entry,
+                                "directory symlink leaves the analysis root; "
+                                "its contents were never examined",
+                            )
+                            unscanned_subtrees.append(rel(entry))
                         continue
                     identity = _dir_identity(entry)
-                    if identity is not None:
+                    if identity is not None and identity[1]:
                         # Bind mounts and hardlinked directories can cycle
                         # without a symlink in sight.
                         if identity in visited_dirs:
@@ -241,29 +268,43 @@ def scan(root: Path) -> dict:
             "truncated": truncated,
             "symlinksSkipped": links_skipped,
             "unreadableFiles": unreadable_files,
+            "unscannedSubtrees": unscanned_subtrees,
         }
 
     governed = any(m["kind"] == "governed" for m in markers)
     production = any(m["kind"] == "production" for m in markers)
     # An incomplete scan is not a clean scan: files we could not read were
     # never checked for markers, so the guard cannot certify this repo.
-    stop = governed or production or bool(unreadable_files)
+    stop = governed or production or bool(unreadable_files) or bool(unscanned_subtrees)
     return {
         "verdict": "STOP" if stop else "OK",
         "governed": governed,
         "production": production,
         "markers": markers,
-        "reason": _reason(governed, production, unreadable_files),
+        "reason": _reason(governed, production, unreadable_files, unscanned_subtrees),
         "filesScanned": files_scanned,
         "truncated": truncated,
         "symlinksSkipped": links_skipped,
         "unreadableFiles": unreadable_files,
+        "unscannedSubtrees": unscanned_subtrees,
     }
 
 
 def _reason(
-    governed: bool, production: bool, unreadable: list[str] | None = None
+    governed: bool,
+    production: bool,
+    unreadable: list[str] | None = None,
+    unscanned: list[str] | None = None,
 ) -> str:
+    if unscanned and not (governed or production):
+        shown = ", ".join(unscanned[:3])
+        more = f" (+{len(unscanned) - 3} more)" if len(unscanned) > 3 else ""
+        return (
+            f"{len(unscanned)} directory symlink(s) lead outside the analysis "
+            f"root ({shown}{more}), so part of this repository was never "
+            "examined. A marker could sit in the content behind them — failing "
+            "closed rather than certifying a repo this scan could not fully see."
+        )
     if unreadable and not (governed or production):
         shown = ", ".join(unreadable[:3])
         more = f" (+{len(unreadable) - 3} more)" if len(unreadable) > 3 else ""
