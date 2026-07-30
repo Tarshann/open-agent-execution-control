@@ -32,6 +32,13 @@ open skill, commercial control plane. `strix-onboard` is a reference model, not
 the hosted Console; see [`docs/VALIDATION.md`](docs/VALIDATION.md) for what has
 and has not been validated.
 
+Local receipts are checkable by the published `npx @strixgov/verifier` via a
+projection that invents no hosted-tenancy fields — demonstrated end-to-end
+(`VERIFIED` on a real receipt, `TAMPERED` on a forged one) in
+[`docs/PROOF-ATTEMPT.md`](docs/PROOF-ATTEMPT.md), with the design in
+[`docs/EVIDENCE-INTEROP.md`](docs/EVIDENCE-INTEROP.md). The trust anchor stays
+local: externally *verifiable*, not publicly *resolvable*.
+
 ### Not in this plugin
 
 The three SGRF review lenses — `/runtime-governance-review` (system),

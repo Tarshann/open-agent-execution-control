@@ -95,12 +95,14 @@ reported because quoting the first without the second would overstate what ran.
 
 | Environment | Result |
 |---|---|
-| **Linux, cffi installed** | `271 passed` · 0 skipped |
-| **Linux, fresh clone of this image** (no cffi) | `231 passed, 40 skipped` · 0 failed |
-| **Windows** | `260 passed, 11 skipped` · 0 failed |
+| **Linux, cffi installed** | `282 passed` · 0 skipped |
+| **Linux, fresh clone of this image** (no cffi) | `233 passed, 49 skipped` · 0 failed |
+| **Windows** | `260 passed, 11 skipped` · 0 failed — measured at `3d1e4db` (271-test suite); the 11 later tests (2 verdict, 9 tool-gateway export) have not yet run there |
 
-260 + 11 = 271, the same total as Linux, so the two platforms ran the same suite
-and differ only in which tests their filesystem gates out.
+At `3d1e4db`, 260 + 11 = 271 matched Linux exactly, so the two platforms ran the
+same suite and differed only in filesystem gates. The suite has since grown to
+282: +2 for the `ERROR` verification verdict, +9 for the tool-gateway export
+(signing-gated, hence the clean-checkout skips rising 40 → 49).
 
 The second was verified, not assumed, by shadowing `_cffi_backend` with a module
 that raises on import and re-running the suite.
@@ -565,16 +567,34 @@ it is documented as a declared test transform that certifies nothing.
 ## Known gaps
 
 Required before the hosted Console onboarding objective could be considered
-validated. None are addressed by this manifest.
+validated. Item 5 is closed by [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md); item 6 is
+narrowed by it from "not attempted" to a named blocker. The rest are not addressed
+by this manifest.
 
 1. No hosted tenant onboarding run (no hosted API exists in this repository).
 2. No credential-vault binding test — the model accepts references only.
 3. No adapter connectivity test against a real non-production integration.
 4. No policy-denial or approval-required test through a hosted decision service.
-5. **No real governed action executed, and therefore no evidence id.**
-6. **No public verifier output.** No `npx @strixgov/verifier <id>` run against a
-   publicly resolvable record is included, so "anyone can check it" is
-   unproven here.
+5. ~~No real governed action executed, and therefore no evidence id.~~
+   **Closed.** One executed, mutating a file on disk, decision
+   `REQUIRE_APPROVAL_GRANTED`, evidence id `local_ev_19280411de58494ebd98ef099e9d8fee`,
+   signature valid under this repository's own offline check. See
+   [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md).
+6. ~~No public verifier output.~~ **Closed for Local Mode's trust scope.** The
+   raw `local-receipt-v1` is still refused (`unknown schemaVersion`,
+   `@strixgov/verifier@1.20.0`) — but `export_tool_gateway_receipt()` projects a
+   verified local receipt into the tool-gateway `schemaVersion: "1"` shape
+   (which, unlike v2, needs no `tenantId`/`environment` — nothing is invented),
+   and the published verifier returned **`Status: VERIFIED`, exit 0** on the real
+   receipt, and `TAMPERED`, exit 1, on a one-field forgery of it. What remains
+   open is narrower and stated precisely in
+   [`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md): the trust anchor is the local key,
+   so the record is reproducible by anyone holding the receipt + JWKS files but
+   not publicly *resolvable* — a hosted evidence record under Strix-custody keys
+   is still the hosted platform's to produce. The projection's design —
+   why v1, the field mapping, the laundering guards, and the
+   verifiable-vs-resolvable distinction — is documented in
+   [`EVIDENCE-INTEROP.md`](./EVIDENCE-INTEROP.md).
 7. No cross-tenant isolation test at the persistence or API layer — the tests
    cover in-process attachment refusal only.
 8. No key-rotation-during-onboarding or JWKS-outage behaviour.
@@ -600,12 +620,20 @@ validated. None are addressed by this manifest.
 
 ## A proof bundle would need
 
-Not produced here. For a future release to claim independent verifiability, it
-should ship:
+[`PROOF-ATTEMPT.md`](./PROOF-ATTEMPT.md) now assembles every item on this list,
+including the verdict:
 
-- commit SHA;
-- evidence id and the receipt itself;
-- signing key id (`kid`) and the public JWKS location;
-- the exact verifier command and its version or checksum;
-- the expected verdict;
-- the trust-scope statement (what the verdict does and does not establish).
+| Element | Status in `PROOF-ATTEMPT.md` |
+|---|---|
+| commit SHA | ✅ `f46cee5` (action executed there; export added after) |
+| evidence id and the receipt itself | ✅ real, executed, quoted in full |
+| signing key id (`kid`) and public key | ✅ `local-744c02d8284506d0`, exported as JWKS |
+| the exact verifier command and its version | ✅ `npx @strixgov/verifier@1.20.0 receipt … --jwks …` |
+| the expected verdict | ✅ **obtained**: `VERIFIED`, exit 0 — with the discrimination check (`TAMPERED`, exit 1, on a one-field forgery) |
+| the trust-scope statement | ✅ independent *code*, local *trust anchor* — a `LOCAL_MACHINE_ASSERTION` checkable by an external tool, not a hosted-custody claim |
+
+The earlier revision of this section noted that a bundle with every row populated
+except an honestly-obtained verdict proves nothing. The verdict row is now real —
+and the trust-scope row is what keeps it from being quoted as more than it is:
+reproducible by anyone holding the two files, publicly resolvable by no one,
+because no hosted record exists.
