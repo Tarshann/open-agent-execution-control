@@ -1,0 +1,162 @@
+{
+  "schema": "strix-release-provenance/1",
+  "package": "@strixgov/mcp-proxy",
+  "version": "0.2.2",
+  "registry": {
+    "integrity": "sha512-eaXWz6V/yZQY1dhwPYQv0QBDtsIf6Hb4vFwO+ZffNKEO+MveijWgIvFwE+liIjCeDUYbsf6pgtcG84oNkYh1RA==",
+    "shasum": "7d9838cfe3b695b45ee0642f55d63a698f855c8e",
+    "fileCount": 33
+  },
+  "tarball": {
+    "integrity": "sha512-eaXWz6V/yZQY1dhwPYQv0QBDtsIf6Hb4vFwO+ZffNKEO+MveijWgIvFwE+liIjCeDUYbsf6pgtcG84oNkYh1RA==",
+    "bytes": 66294
+  },
+  "source": {
+    "commit": "d9a8d8b1404b74f5a1ffd98ea22d96aa58d0bded",
+    "repository": "Tarshann/strix-platform (private)",
+    "subdir": "packages/strixgov-mcp-proxy",
+    "publicRepositoryResolvable": false,
+    "note": "This commit is NOT present in the public Strixgov/strix mirror (different history). Verify with a checkout of the private repo, or compare against the per-file hashes below."
+  },
+  "expectedPublishTimeRewrites": [
+    "package.json"
+  ],
+  "files": {
+    "bin/strix-mcp-proxy.mjs": {
+      "sha256": "311b3387fb3f9218383b47360d087e6796b988b0364fbf0a7d66ca6c5146f0e8",
+      "matchesSourceAtCommit": true
+    },
+    "CHANGELOG.md": {
+      "sha256": "1bd30a37c96586d236def8cfb183c4756206fd7bbe048de098e2b93079a9e897",
+      "matchesSourceAtCommit": true
+    },
+    "COMMERCIAL.md": {
+      "sha256": "baf5cebe2dc458f8b5becf174553a1ec4cc4b0ea5ddca6eb9876353122f89c2c",
+      "matchesSourceAtCommit": true
+    },
+    "examples/notion-proxy-config.json": {
+      "sha256": "e25f4c11005bc115af9b31e10eb1cfa11f1103e0b947b845ceb423e2034521e9",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/.mcp.json": {
+      "sha256": "dbf660cd58768ca622b2047df95ed174d5b9041f7d6d5381b64e35c80f91cb8f",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/demo-upstream.mjs": {
+      "sha256": "be305a6bbff8b5ceaea4acce2ed021fc8a86062f4acc578bd279fe452971ed35",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/nooa_agent.py": {
+      "sha256": "e3fed200b90fc12693c989c26f7336b4ddfe7531e27811c08f8067171d03d32d",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/openshell-policy.yaml": {
+      "sha256": "2178af53cb5f4d111a404412b6367c46522417f5d1e3cef9a650d5dcd9f6fee7",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/proxy-config.json": {
+      "sha256": "763ff46311ef07e634a2a4a99a96fdae47ea9274b3ab536030d8f90329110523",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/README.md": {
+      "sha256": "e56c8337f1daa6c964278ad4eced47870b9d902c9d2ddc1d4af133f583692fe1",
+      "matchesSourceAtCommit": true
+    },
+    "examples/nvidia-nooa/verify-proof.mjs": {
+      "sha256": "b7cd26c536c910983ab627b53ce8e5069c9169eb038daa6818516aff18c70fb8",
+      "matchesSourceAtCommit": true
+    },
+    "examples/youspot-proxy-config.json": {
+      "sha256": "16d5b4f6ca2f27546503813d1ce41cb56bae9aea14a3cbd852698dcc02f402ff",
+      "matchesSourceAtCommit": true
+    },
+    "examples/youspot/README.md": {
+      "sha256": "ca9c7dc1122cf55748d01a8fa242d5ee20febf1818a6a2cd2d068acf76cf1aa9",
+      "matchesSourceAtCommit": true
+    },
+    "LICENSE": {
+      "sha256": "8c8e1b94b4463101d42b04e18ec3afc61da6c12b111d355e83b71edff4cd1c75",
+      "matchesSourceAtCommit": true
+    },
+    "package.json": {
+      "sha256": "a52de4ccd28ee9f95b81cec0a76a5d146ba00cd727caa7ed527078d60ca224e3",
+      "matchesSourceAtCommit": false
+    },
+    "README.md": {
+      "sha256": "378253b6a18a7fc0709da2dc6643788a640c3555325858f9d0d8b96049ec6636",
+      "matchesSourceAtCommit": true
+    },
+    "scripts/preflight.mjs": {
+      "sha256": "04980fc0b47bfbcaf29994e5ee8c7b33f46a5ea9158788ca76710e84ee758cc7",
+      "matchesSourceAtCommit": true
+    },
+    "scripts/run-tests.mjs": {
+      "sha256": "0c641fd12dbb042f6af9c0d8953bede09e80a341ff8407f5b1fc1a783e649333",
+      "matchesSourceAtCommit": true
+    },
+    "SECURITY.md": {
+      "sha256": "87d44ea2ca52907d6974cafd9ff6229b240e3aa8e8e82165593fe1c4e9ccdb44",
+      "matchesSourceAtCommit": true
+    },
+    "src/config.mjs": {
+      "sha256": "0a6f915831c7b4ef74808bae792d0ee9e061b1b1285e0d5f5a943cb452e2cfa0",
+      "matchesSourceAtCommit": true
+    },
+    "src/index.mjs": {
+      "sha256": "c02e162cfb296601a438ddd0d5cc8461aca85e8014826de32945bd14c3eb4e89",
+      "matchesSourceAtCommit": true
+    },
+    "src/proxy.mjs": {
+      "sha256": "cb734c25a2186bf618415a782cb2f8d2039a15ededdc8086b3e8aefa78a33bd6",
+      "matchesSourceAtCommit": true
+    },
+    "src/shadow-discovery.mjs": {
+      "sha256": "2c352c8794b9ef76f81b6d9ade71faeefe3e788616d601476a98980a8d772a9e",
+      "matchesSourceAtCommit": true
+    },
+    "src/types.d.ts": {
+      "sha256": "c9a3670e98ae46991fc2a5558e09a1224685686e0943f0047084fa0d43831cac",
+      "matchesSourceAtCommit": true
+    },
+    "src/webhook-approver.mjs": {
+      "sha256": "6c3ad4f013999f014d5467b080c8ef45e1f0f6b5a3c0f06fa754b0403e04b7e3",
+      "matchesSourceAtCommit": true
+    },
+    "test/cli.test.mjs": {
+      "sha256": "adfc1541c3ff446333a8528e0695ae82900fad82367c995e62ea3e6968bbfc2f",
+      "matchesSourceAtCommit": true
+    },
+    "test/config.test.mjs": {
+      "sha256": "19948f010b958fe45697717e8558cccef0a88f98a87050e147850a835d655785",
+      "matchesSourceAtCommit": true
+    },
+    "test/nvidia-nooa-profile.test.mjs": {
+      "sha256": "39becbafce1f949e201b2e99b297d9456b6a35bc40726aa3138c5a671f5562df",
+      "matchesSourceAtCommit": true
+    },
+    "test/package-contract.test.mjs": {
+      "sha256": "e65ae8e6978c3c3d022548457c31f9c8304c72c9d21363d636ea38c2174fbd0b",
+      "matchesSourceAtCommit": true
+    },
+    "test/proxy-end-to-end.test.mjs": {
+      "sha256": "f226d2db53a30d1f662cac11d9006cb28b69c27e94a7d21f9a27af0e845bda7d",
+      "matchesSourceAtCommit": true
+    },
+    "test/shadow-discovery-e2e.test.mjs": {
+      "sha256": "d557196cee3b9314d96f64af9dca49bbfb874ae5ba312317d56838b90d7bb114",
+      "matchesSourceAtCommit": true
+    },
+    "test/shadow-discovery.test.mjs": {
+      "sha256": "d0ae06e62681b5bef0a2a777aef5466aa615720ee816fcb5bb799dc68ef76a24",
+      "matchesSourceAtCommit": true
+    },
+    "test/webhook-approver.test.mjs": {
+      "sha256": "5521b21bd4fa3936d9679eb69d0443c5d912b270d0ecb80eeb00b0e738b9cf18",
+      "matchesSourceAtCommit": true
+    }
+  },
+  "claims": {
+    "proves": "These registry bytes equal the listed source files at the listed commit, except the declared rewrites.",
+    "doesNotProve": "Who built or published the tarball, that the build environment was clean, or that the source commit is the reviewed/released state. Not an npm provenance attestation."
+  }
+}
