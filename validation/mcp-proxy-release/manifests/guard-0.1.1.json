@@ -1,0 +1,74 @@
+{
+  "schema": "strix-release-provenance/1",
+  "package": "@strixgov/guard",
+  "version": "0.1.1",
+  "registry": {
+    "integrity": "sha512-Dg7lfL+FzGPuBw4aAhKiKryDWjxbHv18s2mQQhimchafUWyUiE1wIe98a8pGgVHtEuPP/RJA6vbRsaI1uHIEXg==",
+    "shasum": "561ca8e8565d673708f2bd5427db59bd84decb3f",
+    "fileCount": 11
+  },
+  "tarball": {
+    "integrity": "sha512-Dg7lfL+FzGPuBw4aAhKiKryDWjxbHv18s2mQQhimchafUWyUiE1wIe98a8pGgVHtEuPP/RJA6vbRsaI1uHIEXg==",
+    "bytes": 10644
+  },
+  "source": {
+    "commit": "7a500436313217b997acd69c66073bf47a21f5b3",
+    "repository": "Tarshann/strix-platform (private)",
+    "subdir": "packages/strixgov-guard",
+    "publicRepositoryResolvable": false,
+    "note": "This commit is NOT present in the public Strixgov/strix mirror (different history). Verify with a checkout of the private repo, or compare against the per-file hashes below."
+  },
+  "expectedPublishTimeRewrites": [
+    "package.json"
+  ],
+  "files": {
+    "bin/strix-guard.mjs": {
+      "sha256": "f53f3874ab97cd3899d2039fd91640957e7ebb75e25025e642fd715a8258ee69",
+      "matchesSourceAtCommit": true
+    },
+    "LICENSE": {
+      "sha256": "74ce4c3ad0ac174780dabe86bf2fd838eb5748f3fda4b15498b6126abf56014b",
+      "matchesSourceAtCommit": true
+    },
+    "package.json": {
+      "sha256": "28ea5e0d9816e19579251ba703e58fd21eb7cac17ecc1e52a0d72de2a5c30dc1",
+      "matchesSourceAtCommit": false
+    },
+    "README.md": {
+      "sha256": "974f192fc419fb808421496c363b0a806407c4ec664f21afcbbd0dbfb62c7e24",
+      "matchesSourceAtCommit": true
+    },
+    "src/approvals.mjs": {
+      "sha256": "e6dee10f11feb0fc32e2ebbcdb1c40c7f5ed20db67a5568dd53fff4d4bc4c6b6",
+      "matchesSourceAtCommit": true
+    },
+    "src/index.mjs": {
+      "sha256": "a71ce1f724d80fae163602e1920644b7dcf6b52bb82c9cb2ef95e774b7f8d72f",
+      "matchesSourceAtCommit": true
+    },
+    "src/init.mjs": {
+      "sha256": "61787db66a48e2d3ba7032d1489cb96d16bed1e68a88d2fb096970bb89339b8c",
+      "matchesSourceAtCommit": true
+    },
+    "src/paths.mjs": {
+      "sha256": "74ed61ae1c223e5b9d44ab91f476c092840457bd455a3ac440a4df761b1a2c2e",
+      "matchesSourceAtCommit": true
+    },
+    "test/approvals.test.mjs": {
+      "sha256": "13b958817648b084a504c59b62b8b4c3d9cec121cf0bb1fd3bbfd3c98c4a10f5",
+      "matchesSourceAtCommit": true
+    },
+    "test/init.test.mjs": {
+      "sha256": "3abc36c8d20fc38a6fde83421f04dddb9e49316ce1d38f617d9c6fcdf9289cc6",
+      "matchesSourceAtCommit": true
+    },
+    "test/package-contract.test.mjs": {
+      "sha256": "d29462fceb4eca23c165b7122e16122313991574bfd7b846218b175a8e047040",
+      "matchesSourceAtCommit": true
+    }
+  },
+  "claims": {
+    "proves": "These registry bytes equal the listed source files at the listed commit, except the declared rewrites.",
+    "doesNotProve": "Who built or published the tarball, that the build environment was clean, or that the source commit is the reviewed/released state. Not an npm provenance attestation."
+  }
+}

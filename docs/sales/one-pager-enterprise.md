@@ -16,13 +16,13 @@ Enterprises are handing AI agents real authority over payments, data, customer c
 
 ## The Strix answer
 
-Strix places a **non-bypassable decision point in front of consequential actions** and a **cryptographically signed, independently verifiable evidence record behind them**. Fail-closed by default.
+Strix places a **decision point in front of the consequential actions you route through it** and a **signed, independently verifiable evidence record behind them**. On a routed path, a denial or an approval timeout means the action does not run. A call that bypasses the route is not covered, so each pilot lists covered, uncovered and unknown paths separately.
 
 - **Before:** every governed action is evaluated against your policy (allow, deny, or route to a human approver) *before* it executes. A denied action never runs.
 - **After:** an Ed25519-signed, timestamped receipt records what ran, when, and under what decision. Anyone, including your auditor, your customer, or your own engineers, can verify it with a free open-source tool (`npx @strixgov/verifier`) with zero access to your systems and without taking Strix's word for it.
-- **Secrets stay yours:** Strix stores credential *references*, never credential values. Only an action's non-secret parameters travel; never API keys, tokens, or card data.
+- **Secrets stay yours:** Strix stores credential *references*, never credential values. In hosted modes, what travels includes the action's parameters (in plain text in the evidence record), so pilots use synthetic data only: no API keys, tokens, card data or health data. Offline Mode sends nothing.
 
-Strix is running in production today, governing live capabilities, and is currently in private beta for new tenants.
+Strix's hosted runtime is in private beta for new tenants. The open skills and proxy are evaluated first on synthetic data in a sandbox.
 
 ## Architecture: open trust, commercial control
 
@@ -48,16 +48,16 @@ Strix's claims are engineered to be checkable, and bounded:
 
 | Stakeholder | Outcome |
 |---|---|
-| **CISO / Risk** | Policy-enforced pre-execution control over agent actions, deny-by-default on ungoverned paths, fail-closed safety checks |
-| **Compliance / Audit** | Tamper-evident, independently verifiable evidence records; the verifier is public and vendor-independent |
+| **CISO / Risk** | Policy-enforced pre-execution control on the routes you wire, a deny-by-default policy on those routes, and an explicit list of paths that remain uncovered |
+| **Compliance / Audit** | Tamper-evident, independently verifiable evidence records that can serve as *input* to an audit; not a compliance attestation or certification |
 | **Engineering** | Minutes to a first governed action, a one-line wrap with business logic unchanged, MIT tooling with no lock-in at the trust layer |
 | **Procurement** | Open-core: evaluate the full methodology and skills free before any commercial commitment |
 
 ## Evaluation path: a zero-risk pilot
 
-1. **Day 1:** engineers install the open skills and wire one governed action in a sandbox repo. No account, no data shared, about 2 minutes to a signed receipt.
-2. **Week 1:** verify receipts independently, and run the SGRF review lenses against a system you already operate.
-3. **Pilot:** a hosted tenant with your own policies and approval routes governing real agent capabilities. Book a demo at strixgov.com.
+1. **Day 1:** engineers install the open skills and wire one governed action in a throwaway repo. Offline Mode needs no account and no network. Sandbox Mode is hosted, sends the action's parameters to Strix, and should be used with synthetic values only.
+2. **Week 1:** verify receipts independently, and run the SGRF review lenses against a copy of a system you operate. The lenses are advisory reviews, not a merge gate, runtime control or certification.
+3. **Pilot:** one customer-selected codebase, one consequential action, one named route; no production writes, PHI, live payments or customer credentials. See `docs/pilot/CUSTOMER-SAFE-PILOT.md`. Book a demo at strixgov.com.
 
 ---
 

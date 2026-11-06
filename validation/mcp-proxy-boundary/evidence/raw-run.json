@@ -1,0 +1,361 @@
+{
+  "generatedAt": "2026-11-06T19:53:57.728Z",
+  "node": "v24.21.0",
+  "packages": {
+    "@strixgov/mcp-proxy": {
+      "version": "0.2.1",
+      "integrity": "sha512-sFxLtUugEJNxB0olQcgYTaM53wRWPM2OGQNtNp7lWJbq8bqrechbs9r3IxsQTEqRkupqVBmUSbIX/WnV2p+VPQ=="
+    },
+    "@strixgov/verifier": {
+      "version": "1.24.1",
+      "integrity": "sha512-7Xo/eI9loP+14mHX+Xy9NQ5gK1j4P6HI/QzHjPLFT46mX1HC02KmOioL7+rrjTlRLWrAcJKT4JesTVjUoj+Pag=="
+    },
+    "@strixgov/tool-gateway": {
+      "version": "0.5.0",
+      "integrity": "sha512-fXq6OOFQoE4m5Hi6iU1rfy1I5FcCexDXMgGJe0KeGA/ngWtcq/sBI8WKdbPvRaGAPCfn5zhLxuEd7T4Kxn2/xA=="
+    },
+    "@strixgov/mcp-adapter": {
+      "version": "0.1.4",
+      "integrity": "sha512-s09VEND4XbAIMxhClE2mPMdnLMjOQYNZhQr4/oMC5P4JR25NHbRYJEp96inTCEz/ry3tYkwN+IY7CwotktI+4A=="
+    }
+  },
+  "config": {
+    "serverId": "boundary",
+    "upstream": {
+      "command": "node",
+      "args": [
+        "fixture-upstream.mjs"
+      ],
+      "env": "(redacted)"
+    },
+    "capabilities": [
+      {
+        "id": "mcp.boundary.read_note",
+        "name": "read_note",
+        "risk": "LOW",
+        "mode": "READ",
+        "description": "read"
+      },
+      {
+        "id": "mcp.boundary.write_note",
+        "name": "write_note",
+        "risk": "MEDIUM",
+        "mode": "WRITE",
+        "description": "write"
+      },
+      {
+        "id": "mcp.boundary.delete_note",
+        "name": "delete_note",
+        "risk": "CRITICAL",
+        "mode": "WRITE",
+        "description": "delete"
+      }
+    ],
+    "policy": {
+      "rules": {
+        "mcp.boundary.read_note": "ALLOW",
+        "mcp.boundary.write_note": "APPROVAL_REQUIRED",
+        "mcp.boundary.delete_note": "DENY"
+      },
+      "default": "DENY"
+    },
+    "approval": {
+      "enabled": true,
+      "type": "file",
+      "requestDir": "C:\\Users\\user\\AppData\\Local\\Temp\\strix-boundary-w1LZJJ\\approvals",
+      "timeoutMs": 3000
+    },
+    "storagePath": "C:\\Users\\user\\AppData\\Local\\Temp\\strix-boundary-w1LZJJ\\store",
+    "keyPath": "C:\\Users\\user\\AppData\\Local\\Temp\\strix-boundary-w1LZJJ\\keys"
+  },
+  "steps": [
+    {
+      "id": "0",
+      "label": "tools/list through proxy",
+      "tools": [
+        "read_note",
+        "write_note",
+        "delete_note"
+      ]
+    },
+    {
+      "id": "A",
+      "label": "routed read_note (policy ALLOW)",
+      "isError": false,
+      "response": "{\"handler\":\"read_note\",\"ran\":true,\"note\":\"A\"}",
+      "elapsedMs": 18,
+      "handlerInvocationsDuringStep": [
+        "read_note"
+      ]
+    },
+    {
+      "id": "B",
+      "label": "routed delete_note (policy DENY)",
+      "thrown": "MCP error -32603: MCP tool 'delete_note' denied: Execution denied (rule: mcp.boundary.delete_note, risk: CRITICAL)",
+      "elapsedMs": 4,
+      "handlerInvocationsDuringStep": []
+    },
+    {
+      "id": "C",
+      "label": "routed write_note, nobody approves (timeoutMs=3000)",
+      "thrown": "MCP error -32603: MCP tool 'write_note' denied: Execution denied (rule: mcp.boundary.write_note, risk: MEDIUM)",
+      "elapsedMs": 3141,
+      "handlerInvocationsDuringStep": []
+    },
+    {
+      "id": "D",
+      "label": "routed write_note, out-of-band approver approves",
+      "isError": false,
+      "response": "{\"handler\":\"write_note\",\"ran\":true,\"note\":\"D-approved\"}",
+      "elapsedMs": 267,
+      "handlerInvocationsDuringStep": [
+        "write_note"
+      ]
+    },
+    {
+      "id": "E",
+      "label": "OUTSIDE PROXY: delete_note called on the upstream directly",
+      "isError": false,
+      "response": "{\"handler\":\"delete_note\",\"ran\":true,\"note\":\"E-bypass\"}",
+      "elapsedMs": 8,
+      "handlerInvocationsDuringStep": [
+        "delete_note"
+      ]
+    }
+  ],
+  "handlerLog": [
+    {
+      "at": "2026-11-06T19:53:51.919Z",
+      "pid": 32044,
+      "handler": "read_note",
+      "args": {
+        "note": "A"
+      }
+    },
+    {
+      "at": "2026-11-06T19:53:55.353Z",
+      "pid": 32044,
+      "handler": "write_note",
+      "args": {
+        "note": "D-approved"
+      }
+    },
+    {
+      "at": "2026-11-06T19:53:57.682Z",
+      "pid": 39064,
+      "handler": "delete_note",
+      "args": {
+        "note": "E-bypass"
+      }
+    }
+  ],
+  "sandboxFileLines": [
+    "D-approved"
+  ],
+  "storeFiles": [
+    "execution-outcomes.jsonl",
+    "receipts.jsonl",
+    "snapshots.jsonl"
+  ],
+  "receiptCount": 4,
+  "outcomeCount": 2,
+  "receiptsRaw": [
+    {
+      "schemaVersion": "2",
+      "receiptId": "rcpt_07c5160d3526a0176fc5958a",
+      "capabilityId": "mcp.boundary.read_note",
+      "action": "mcp.callTool:read_note",
+      "decision": "ALLOW",
+      "risk": "LOW",
+      "mode": "READ",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "invocationHash": "555dba9c037f59077dfc1b34117406b64e95e940f486090bff1742501bc10260",
+      "evidenceHash": "584fd29821ae83b4578435da96fc22f6fe1485db78f732bc5c9c99fdf5439218",
+      "proofChainHash": "7938b0990e9871adf67c945164139fe561e9b19d51eb736d0293066b9c7e93f8",
+      "timestamp": "2026-11-06T19:53:51.916Z",
+      "signingKeyId": "strix-boundary",
+      "signature": "dg4LCJ3m3BAOMvXndKj00WElyK7vLe1fAXQONRtelFQZWJEaD4--L-_Nf9YOdFyLRwNvG4bjurZb-IFGpkaVAA",
+      "tool": "strix-gateway"
+    },
+    {
+      "schemaVersion": "2",
+      "receiptId": "rcpt_8d6c9d9c5518bb49b47447df",
+      "capabilityId": "mcp.boundary.delete_note",
+      "action": "mcp.callTool:delete_note",
+      "decision": "DENY",
+      "risk": "CRITICAL",
+      "mode": "WRITE",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "invocationHash": "874579636f4c84fc151fd6ab88b21e84ce8ba2da50744e56d7cca77183ed627e",
+      "evidenceHash": "3813b6eca6f9d0e37e1ef8fa99ec95e26d89114b2c02b61d0684e033ae7e6203",
+      "proofChainHash": "bb560be897960626c6b01a67d25bc0548fc4d8601eac4eb4aab9f658f0737b5b",
+      "timestamp": "2026-11-06T19:53:51.948Z",
+      "signingKeyId": "strix-boundary",
+      "signature": "QmEm5LEoRH3NBir8-thUvfS8fkZFmMSHlWHSXECZuWD9fpgYzvRHgld5JnF1IYzwDd9l_pXZab9Y7tfbL_xdCg",
+      "tool": "strix-gateway"
+    },
+    {
+      "schemaVersion": "2",
+      "receiptId": "rcpt_39eaea3b00af6ec7e5afea14",
+      "capabilityId": "mcp.boundary.write_note",
+      "action": "mcp.callTool:write_note",
+      "decision": "DENY",
+      "risk": "MEDIUM",
+      "mode": "WRITE",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "invocationHash": "ac6776f4ac093a6405b669021d5111fffd7d5d085e11dd869dc116a58abd12d9",
+      "evidenceHash": "62ab56c480c3ab60ad2153210d3bd22d88b3766ab9fa7f0d787194c6203624b3",
+      "proofChainHash": "5e3023eef453fb9897e095a4f8f2562e810616a7d2d7aa92653a0540722cccae",
+      "timestamp": "2026-11-06T19:53:55.090Z",
+      "signingKeyId": "strix-boundary",
+      "signature": "2lyQyEVEWEyqlPw6Zm8LKFlMwTk2jiO7Y4JWU4xIY-2cu2-H7VZ2s063kBYHfc3AUvlfNF6GC-5pCStnuA_uDg",
+      "tool": "strix-gateway",
+      "approvalReason": "TIMEOUT"
+    },
+    {
+      "schemaVersion": "2",
+      "receiptId": "rcpt_38070f5d0724463775304322",
+      "capabilityId": "mcp.boundary.write_note",
+      "action": "mcp.callTool:write_note",
+      "decision": "ALLOW",
+      "risk": "MEDIUM",
+      "mode": "WRITE",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "invocationHash": "f2d080729ca588790115b9493ac0ba08b969683d1d18304c69e6c1f8c6fec144",
+      "evidenceHash": "e54396fdbae49c1013a110a32236b1a2b6630461e2bad7950d69dbeb5679c133",
+      "proofChainHash": "13615cc1381c74283692ee24415b3d8b07c341d89bed0fbd131d30878a2f0bd2",
+      "timestamp": "2026-11-06T19:53:55.351Z",
+      "signingKeyId": "strix-boundary",
+      "signature": "VOzSHEu-gjBet5kJ6TVuUhjjy5KsYz2ks3SXRHopDemBWHydiPTW39kHriDIfngHDgFEaKxNAmL6N2fH-iatAQ",
+      "tool": "strix-gateway",
+      "approvedBy": "validation-harness",
+      "approvalReason": "USER_APPROVED"
+    }
+  ],
+  "outcomesRaw": [
+    {
+      "schemaVersion": "1",
+      "outcomeId": "out_8af971ad35882f6c2b5aa679",
+      "authorizationReceiptId": "rcpt_07c5160d3526a0176fc5958a",
+      "authorizationProofChainHash": "7938b0990e9871adf67c945164139fe561e9b19d51eb736d0293066b9c7e93f8",
+      "capabilityId": "mcp.boundary.read_note",
+      "action": "mcp.callTool:read_note",
+      "decision": "ALLOW",
+      "executionAttempted": true,
+      "executionStatus": "SUCCEEDED",
+      "invocationHash": "555dba9c037f59077dfc1b34117406b64e95e940f486090bff1742501bc10260",
+      "resultHash": "sha256:f8db0fe926b48442b42b1367d896311ffc48629e15b1288bc9932a4d2624f2bc",
+      "errorCode": "",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "completedAt": "2026-11-06T19:53:51.925Z",
+      "signingKeyId": "strix-boundary",
+      "signatureAlgorithm": "Ed25519",
+      "outcomeHash": "sha256:f7c8d50557c70ec15acf40a94647f419a6d1a377f6ffab520e1964a17e9f4e3a",
+      "signature": "ESn9piOm2SKWplUY4HQibQo6aMxiGrA_h_I8iBLOsyhxbi40LudGRYQC1pDNewOQZ69jjfm2ahcu03Ohkxa-BQ"
+    },
+    {
+      "schemaVersion": "1",
+      "outcomeId": "out_0175e516e99f9d8e5cc46765",
+      "authorizationReceiptId": "rcpt_38070f5d0724463775304322",
+      "authorizationProofChainHash": "13615cc1381c74283692ee24415b3d8b07c341d89bed0fbd131d30878a2f0bd2",
+      "capabilityId": "mcp.boundary.write_note",
+      "action": "mcp.callTool:write_note",
+      "decision": "ALLOW",
+      "executionAttempted": true,
+      "executionStatus": "SUCCEEDED",
+      "invocationHash": "f2d080729ca588790115b9493ac0ba08b969683d1d18304c69e6c1f8c6fec144",
+      "resultHash": "sha256:5c06e9521f152c93996eea4b9fdd465425f3a99aeeb41604a1598db76e075024",
+      "errorCode": "",
+      "policyVersion": "sha256:8e0704d0754fbd6d977d4fd6e00802405076e4dd598a358efcb68bfd5fd3fc6b",
+      "tenantId": "local",
+      "environment": "local",
+      "completedAt": "2026-11-06T19:53:55.355Z",
+      "signingKeyId": "strix-boundary",
+      "signatureAlgorithm": "Ed25519",
+      "outcomeHash": "sha256:fa3da012abde541619314795ef8413ad106d36baf85a474fdc6a6fc7f030b335",
+      "signature": "ZgZH0we_xZBspl6GKdvkodGKI8QohuT-h51akgQIl2LKlbZlWrxM6QPxnbIrRdr2jXSHMaJ9Rf0CdXAewHoBAA"
+    }
+  ],
+  "verification": {
+    "chainValid": true,
+    "count": 4,
+    "receipts": [
+      {
+        "receiptId": "rcpt_07c5160d3526a0176fc5958a",
+        "status": "VERIFIED"
+      },
+      {
+        "receiptId": "rcpt_8d6c9d9c5518bb49b47447df",
+        "status": "VERIFIED"
+      },
+      {
+        "receiptId": "rcpt_39eaea3b00af6ec7e5afea14",
+        "status": "VERIFIED"
+      },
+      {
+        "receiptId": "rcpt_38070f5d0724463775304322",
+        "status": "VERIFIED"
+      }
+    ],
+    "executionOutcomes": [
+      {
+        "outcomeId": "out_8af971ad35882f6c2b5aa679",
+        "status": "VERIFIED",
+        "error": null
+      },
+      {
+        "outcomeId": "out_0175e516e99f9d8e5cc46765",
+        "status": "VERIFIED",
+        "error": null
+      }
+    ],
+    "tamperNegativeControl": {
+      "chainValid": true,
+      "firstReceiptStatus": "TAMPERED"
+    }
+  },
+  "checks": [
+    {
+      "name": "A routed allow: handler ran once, ALLOW receipt, SUCCEEDED outcome",
+      "pass": true
+    },
+    {
+      "name": "B routed deny: handler did NOT run, DENY receipt, no execution outcome",
+      "pass": true
+    },
+    {
+      "name": "C approval timeout: waited >= timeoutMs, handler did NOT run, DENY receipt with approvalReason TIMEOUT, no outcome",
+      "pass": true
+    },
+    {
+      "name": "D approved: handler ran once, ALLOW receipt approvedBy harness (USER_APPROVED), SUCCEEDED outcome, sandbox has only the approved note",
+      "pass": true
+    },
+    {
+      "name": "E outside proxy: handler RAN and no new receipt/outcome was produced (control is not in this path)",
+      "pass": true
+    },
+    {
+      "name": "Independent verify: every receipt and outcome VERIFIED",
+      "pass": true
+    },
+    {
+      "name": "Negative control: a tampered receipt is reported TAMPERED",
+      "pass": true
+    }
+  ],
+  "observations": {
+    "tamperedChainValidFlag": true,
+    "note": "chainValid stayed true for a chain containing a TAMPERED receipt; gate on per-receipt verificationStatus, not chainValid alone."
+  }
+}

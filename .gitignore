@@ -10,6 +10,7 @@
 !/strixgov-plugins/
 !/skills/
 !/docs/
+!/validation/
 !/README.md
 !/LICENSE
 !/requirements-test.txt
@@ -18,3 +19,6 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Validation harnesses: keep sources, evidence and lockfiles; never installed deps.
+/validation/**/node_modules/

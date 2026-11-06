@@ -1,6 +1,6 @@
 # Get Started with Strix
 
-**Your first governed action in minutes. No coding background needed. No account. No credit card.**
+**Your first governed action in minutes. No Strix account and no credit card. Offline Mode stays on your machine.**
 
 *Models decide. Agents orchestrate. Strix controls execution.*
 
@@ -8,7 +8,7 @@
 
 ## What Strix does, in one sentence
 
-Before your software (or an AI agent working inside it) does something risky, like charging a card, deleting data, or sending an email, **Strix checks it first and hands you a tamper-proof receipt that anyone can verify.**
+Before your software (or an AI agent working inside it) does something risky, like charging a card, deleting data, or sending an email, **Strix checks it first and hands you a tamper-evident receipt that anyone can verify.**
 
 Think of it as a checkpoint in front of one risky action, and a signed receipt behind it. Your software still does exactly what it did before.
 
@@ -23,7 +23,7 @@ Think of it as a checkpoint in front of one risky action, and a signed receipt b
 | **Node + npm** | Only for the final "check the receipt yourself" step |
 | **A practice project** | Your first run fires one real action, so start on a scratch copy, not production. Strix refuses to run on production code anyway. That guard is built in |
 
-**No Strix account.** Sandbox Mode sets itself up automatically the first time.
+**No Strix account.** Offline Mode needs nothing and uses no network. Sandbox Mode is hosted: it is designed to set itself up automatically, but it uses the network, and its last end-to-end check (2026-11-06) did not complete, so start with Offline Mode.
 
 ---
 
@@ -58,17 +58,17 @@ Or just ask in plain English: *"wire Strix into this project."*
 npx @strixgov/verifier@latest <id>
 ```
 
-You'll see **`Status: VERIFIED`**. That's proof, checkable by anyone, that the action happened, when it happened, and that it was allowed.
+You'll see **`Status: VERIFIED`**. That means the record is signed and unmodified, checkable by anyone. It does not show that other actions in your software were governed.
 
 ---
 
 ## FAQ
 
 **Do I have to sign up for anything?**
-No. Sandbox Mode auto-provisions a short-lived credential for you. Offline Mode needs nothing at all, not even internet.
+Not for Offline Mode, which needs no account and no internet. Sandbox Mode is designed to need no account, but it is hosted and was not working end to end when last checked (2026-11-06).
 
 **Is my code or data sent anywhere?**
-In Sandbox Mode, only the one action's non-secret details (amounts, IDs, never passwords, API keys, or card numbers). In Offline Mode, nothing leaves your machine, ever.
+Your source code is not sent. In Sandbox Mode (hosted) the action's parameters travel in plain text, along with the action name, an actor id, timestamps and your IP address, so use test values only: no passwords, API keys, card numbers or personal data. In Offline Mode the helper makes no network calls.
 
 **Did this change what my software does?**
 No. The one line you approved still does exactly what it did before. Strix adds a permission check in front and a receipt behind.

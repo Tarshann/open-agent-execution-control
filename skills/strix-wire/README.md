@@ -25,8 +25,9 @@ Analysis-only users spend **1** approval; wrap-but-don't-run, **2**; the full
 sandbox proof, **3**. A fourth prompt is legitimate only for genuine
 environment setup (e.g. installing Node before a TypeScript run-proof).
 
-This skill ships **two zero-account modes** — they prove different things,
-and neither is a lesser version of the other:
+This skill ships **two zero-account modes** — one hosted (network), one
+offline — and they prove different things; neither is a lesser version of the
+other:
 
 | | **Sandbox Mode** | **Offline Mode** |
 |---|---|---|
@@ -36,14 +37,27 @@ and neither is a lesser version of the other:
 | Terminal proof command | `npx @strixgov/verifier@latest <decisionId>` (INSTALL-1) | `solo strix-wire verify <path>` (LOCAL-VERIFY-1) |
 | What it proves | The hosted Strix kernel evaluated and signed this decision | A local key signed a hash-chained, tamper-evident record — a `LOCAL_MACHINE_ASSERTION`, not Strix-operated custody |
 
-**Sandbox Mode (default, hosted).** If `STRIX_API_KEY` / `STRIX_TENANT_ID`
-aren't configured, the helper auto-provisions a short-lived sandbox
-credential from `POST /api/public/sandbox/provision` and proceeds — a
-stranger with no account still gets a real, hosted, kernel-evaluated
-decision. The helper's final step posts a receipt that Ed25519-signs the
-decision itself, so the happy path ends in a genuinely verifiable
+**Sandbox Mode (hosted — uses the network).** If `STRIX_API_KEY` /
+`STRIX_TENANT_ID` aren't configured, the helper is designed to auto-provision
+a short-lived sandbox credential from `POST /api/public/sandbox/provision`
+and proceed with no account. The helper's final step posts a receipt that
+Ed25519-signs the decision itself, so the happy path ends in a verifiable
 `Status: VERIFIED` record. If the receipt step fails, the skill degrades
 honestly — it never prints a verify command with no signed record behind it.
+What leaves the machine in this mode: your IP address, the capability name,
+the actor id, a parameter hash, timestamps and — on the success path — the
+action's parameters in plain text (use synthetic, non-secret values only).
+The sandbox tenant is shared and the credential expires after about an hour.
+
+> **Verified status (2026-11-06): hosted Sandbox Mode did NOT complete
+> end to end.** Provisioning succeeded, but `POST /api/v1/evaluate` returned
+> HTTP 400 `Unknown action type` for every one of the 10 capabilities the
+> provision response listed (the docs also list `payment.refund`, which the
+> provision response did not). Offline Mode passed end to end with the network
+> disabled. Re-run: `python validation/wire-hosted/run.py payment.charge` and
+> `python validation/wire-offline/run.py <path-to-solo>`; evidence is under
+> `validation/*/evidence/`. Don't promise accountless hosted provisioning until
+> the hosted run passes.
 
 **Offline Mode (zero hosted dependency).** Chosen explicitly at the wrap
 approval. No network call anywhere — a local Ed25519 key signs every

@@ -1,8 +1,8 @@
 # Strix for Developers
 
-**Govern one real call and walk away with a verifiable receipt. MIT-licensed skills, runs locally, no account, about 2 minutes to first signed proof.**
+**Govern one real call and walk away with a verifiable receipt. MIT-licensed skills. Offline Mode runs on your machine with no account and no network; Sandbox Mode is hosted and uses the network.**
 
-*Nothing executes until evaluated. Every decision produces cryptographically signed proof anyone can verify.*
+*A call routed through a governed call site is evaluated before it runs, and each decision produces a signed record anyone can verify. Calls that don't go through that route are not covered.*
 
 ---
 
@@ -28,12 +28,13 @@ Prefer no marketplace? Clone the repo and copy `skills/strix-wire` and `skills/s
 
 ## Modes
 
-| | Sandbox Mode (default) | Offline Mode |
+| | Sandbox Mode (hosted) | Offline Mode |
 |---|---|---|
-| Account | None. Auto-provisions a short-lived credential | None |
-| Network | Up to 4 calls to strixgov.com, non-secret params only | **Zero** |
+| Account | None required by design (short-lived shared sandbox credential) | None |
+| Network | **Yes.** Up to 4 HTTPS calls to strixgov.com. Sends your IP, capability name, actor id, a parameter hash and the parameters in plain text (use synthetic values only) | **None** (verified with sockets blocked) |
 | Signature | Hosted kernel signs | Local key signs |
-| Trust claim | Strix witnessed the decision | Tamper-evident, self-attested |
+| Trust claim | The hosted kernel evaluated and signed the decision | Tamper-evident, self-attested (`LOCAL_MACHINE_ASSERTION`) |
+| Status, 2026-11-06 | **Did not complete end to end:** provisioning worked, evaluate returned HTTP 400 for all 10 listed capabilities | Passed end to end; a tampered copy failed verification |
 
 Have a real account? Set `STRIX_API_KEY` and `STRIX_TENANT_ID`, and your own policy governs runs instead of the sandbox default.
 
@@ -50,7 +51,7 @@ Stopping after any click is a valid terminal state.
 ## Safety guarantees (tested, not asserted)
 
 - **Preflight fails closed.** Production markers (`sk_live_`, `.env.production`, deploy domains) or existing governance mean `STOP`. Unreadable files or subtrees mean "incomplete", never "clean".
-- **271 tests, measured on Linux and Windows** at the same commit. Every security fix was validated by mutation testing or a pre-fix-commit run. See `docs/VALIDATION.md`, including its known-gaps list; the manifest reports what did *not* run, too.
+- **271 tests, measured on Linux and Windows** at commit `3d1e4db`; the current tree has 282 (279 passed, 3 skipped), re-measured on Windows only on 2026-11-06. Every security fix was validated by mutation testing or a pre-fix-commit run. See `docs/VALIDATION.md`, including its known-gaps list; the manifest reports what did *not* run, too.
 - **Token and receipt discipline** in the dataset-export helper: signed execution tokens, atomic redemption under an OS-level lock (double-spend measured at 2 of 16 before the fix, 1 of 16 after), domain-separated Merkle nodes, leaf count bound into the root.
 - **Secrets.** Credential *references* only. A `secret_ref` that looks like a secret value is refused, and the readiness view is tested to contain no credential material.
 
@@ -66,13 +67,13 @@ An independent MIT tool. It recomputes hashes, resolves the key by `kid`, and ve
 
 **Does the analyzer really not touch anything?** Its only output is stdout. The test suite fails if a write, subprocess, or network primitive ever appears in it, including `pathlib` spellings and non-literal `open()` modes.
 
-**What's actually in the receipt?** Hashes and metadata. Canary tests confirm no row content reaches evidence records.
+**What's actually in the receipt?** For the dataset-export helper: hashes and metadata, and canary tests confirm no row content reaches evidence records. For Sandbox Mode's `governed_action`: the parameters you pass are sent in plain text, so pass synthetic values only.
 
 **What does a verified receipt prove?** That the record is signed and unmodified. Not that your system is secure or compliant. The skill's own docs forbid overclaiming, and that discipline is pinned by contract tests.
 
 **Second run says "already governed"?** Correct. Your first wrap is real governance, so the preflight flags it, and continuing takes an explicit yes. A deliberate speed bump.
 
-**Python deps?** Stdlib only at runtime. Install `requirements-test.txt` (cryptography) to run the signing-gated tests: 40 of 271 skip without it, and they're the evidence and verifiability ones.
+**Python deps?** Sandbox Mode's helper is stdlib only. Offline Mode's signing needs the `cryptography` package. Install `requirements-test.txt` to run the signing-gated tests; some skip without it, and they're the evidence and verifiability ones.
 
 ---
 

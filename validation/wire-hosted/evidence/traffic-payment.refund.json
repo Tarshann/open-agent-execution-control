@@ -1,0 +1,63 @@
+{
+  "capability_id": "payment.refund",
+  "helper": "skills/strix-wire/helpers/governed_action.py",
+  "strix_env_present": false,
+  "operation_ran": false,
+  "error": "StrixDenied: strix 400: {\"error\":\"Unknown action type: payment.refund\",\"code\":\"INVALID_CAPABILITY_PARAMS\"}",
+  "result": {},
+  "hosts_contacted": [
+    "www.strixgov.com"
+  ],
+  "paths_called": [
+    "api/public/sandbox/provision",
+    "api/v1/evaluate"
+  ],
+  "traffic": [
+    {
+      "method": "POST",
+      "url": "https://www.strixgov.com/api/public/sandbox/provision",
+      "request_body": {},
+      "sent_authorization_header": false,
+      "sent_tenant_header": false,
+      "elapsed_ms": 960,
+      "response": {
+        "apiKey": "<redacted>",
+        "tenantId": "strix-sandbox",
+        "expiresAt": "2026-11-06T16:10:25.840Z",
+        "capabilities": [
+          "database.create",
+          "database.delete",
+          "database.migrate",
+          "database.update",
+          "email.send",
+          "filesystem.delete",
+          "payment.charge",
+          "sms.send",
+          "storage.delete",
+          "storage.write"
+        ],
+        "evaluateUrl": "https://www.strixgov.com/api/v1/evaluate",
+        "note": "Sandbox credentials \u2014 auto-provisioned, expire in 1 hour, scoped to the /strix-wire scanner's irreversible-mutation capability set only."
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://www.strixgov.com/api/v1/evaluate",
+      "request_body": {
+        "capabilityId": "payment.refund",
+        "actor": {
+          "id": "validation-harness",
+          "role": "operator"
+        },
+        "context": {
+          "payloadHash": "22509ebad08312319ed6faa5d7501275d5f198bed9f971678a95edeeb700d2c1",
+          "source": "strix-wire"
+        }
+      },
+      "sent_authorization_header": true,
+      "sent_tenant_header": true,
+      "error": "StrixDenied: strix 400: {\"error\":\"Unknown action type: payment.refund\",\"code\":\"INVALID_CAPABILITY_PARAMS\"}",
+      "elapsed_ms": 428
+    }
+  ]
+}

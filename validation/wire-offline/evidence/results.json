@@ -1,0 +1,38 @@
+{
+  "helper": "skills/strix-wire/helpers/governed_action_local.py",
+  "steps": [
+    {
+      "label": "no approval for a HIGH-risk capability",
+      "raised": "StrixLocalApprovalRequired: payment.charge: HIGH risk action \u2014 local confirmation required before execution (approval not granted)",
+      "operation_ran": false
+    },
+    {
+      "label": "approval_granted=True (caller attests a human confirmed)",
+      "result_type": "LocalGovernedActionResult",
+      "fields": "<ga_local.LocalGovernedActionResult object at 0x0000020B0489CD80>",
+      "operation_ran": true
+    }
+  ],
+  "state_files": [
+    ".strix/evidence/local_ev_86751a46c7784dc280ede50d7944e959.json",
+    ".strix/evidence/receipts.jsonl",
+    ".strix/keys/.gitignore",
+    ".strix/keys/local-e9dcefda688ca92e.key",
+    ".strix/keys/registry.json"
+  ],
+  "private_key_file_present": true,
+  "independent_verify": [
+    {
+      "file": "local_ev_86751a46c7784dc280ede50d7944e959.json",
+      "exit": 0,
+      "out": "\u2705 [0] VERIFIED: hash, chain-link, and signature all verify against the local key registry\nVERIFIED \u2014 1/1 records, chain linked\nLOCAL_MACHINE_ASSERTION: This receipt is cryptographically attributable to the local key identified below (signingKeyId / publicKeyFingerprint). It does not prove Strix-oper"
+    },
+    {
+      "file": "tampered_local_ev_86751a46c7784dc280ede50d7944e959.json",
+      "tampered": true,
+      "exit": 1,
+      "out": "\u26d4 [0] INVALID: evidenceHash does not match the recomputed canonical hash \u2014 payload was tampered\nNOT VERIFIED \u2014 0/1 records valid, chain_linked=True"
+    }
+  ],
+  "socket_connect_attempts": 0
+}
