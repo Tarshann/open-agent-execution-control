@@ -1,20 +1,42 @@
 # strix-wire — first-time quickstart
 
-Govern one real action in about **two minutes**. strix-wire finds one
-irreversible call in your code, wraps it in governance, runs it once, and hands
-you a **cryptographically signed receipt anyone can verify** — with no Strix
-account.
+Govern one real action in a few minutes. strix-wire finds one irreversible
+call in your code, wraps it in governance, runs it once, and hands you a
+**signed receipt you can verify** — with no Strix account. There are two
+modes, and they are different things (not a lesser and a greater version of
+one thing): **Offline Mode** stays on your machine; **Sandbox Mode** is
+hosted and uses the network.
 
 **What leaves your machine.** The analysis and the wrap are entirely local.
 The *run* depends on which mode you use:
 
-- **Sandbox Mode** (the default when you have no account) makes up to four
-  calls to `www.strixgov.com`: provision a short-lived sandbox credential,
-  evaluate the action, ingest the evidence record, and fetch the signed
-  decision receipt. What travels is the action's non-secret parameters
-  (amounts, IDs) — never API keys, tokens, or card numbers.
-- **Offline Mode** makes none. No network, no account, no credential; the
-  receipt is signed by a key generated on your machine.
+- **Sandbox Mode (hosted — uses the network).** Makes up to four HTTPS calls
+  to `www.strixgov.com`: provision a short-lived sandbox credential, evaluate
+  the action, ingest the evidence record, and fetch the signed decision
+  receipt. What leaves the machine: your IP address (as with any HTTPS
+  request), the capability name (e.g. `payment.charge`), the actor id, a hash
+  of the parameters, timestamps, and — on the success path — **the action's
+  parameters themselves, in plain text**, as the evidence record's metadata.
+  Put only non-secret, non-personal test values in them: never API keys,
+  tokens, card numbers, health data, or customer data. The sandbox tenant is
+  shared (`strix-sandbox`), its credential expires after about an hour, and
+  records you send are stored by the hosted service.
+- **Offline Mode (no network).** Makes no network call, needs no account and
+  no credential; the receipt is signed by a key generated on your machine and
+  proves only that *that local key* signed it.
+
+> **Status check, 2026-11-06 — read before promising Sandbox Mode.**
+> Provisioning worked: `POST /api/public/sandbox/provision` returned a
+> credential and a list of 10 capabilities. But the next call,
+> `POST /api/v1/evaluate`, answered **HTTP 400 `Unknown action type`** for all
+> 10 of them (including `payment.charge`), so the hosted run did not complete
+> and no hosted receipt was produced. Offline Mode was verified end to end with
+> network access disabled (zero connection attempts), and its receipt verified
+> with `solo strix-wire verify`; a tampered copy failed. Until the hosted path
+> is re-run and passes, do not describe accountless hosted provisioning as
+> working. Evidence and re-run commands:
+> [`validation/wire-hosted/`](../../validation/wire-hosted/) and
+> [`validation/wire-offline/`](../../validation/wire-offline/).
 
 See the mode comparison in [`README.md`](./README.md) before you pick.
 
@@ -27,7 +49,7 @@ almost all the meaning:
 |------|-------------------------|
 | **Governing** an action | Before something consequential happens in your app — a card gets charged, a row gets deleted, an email goes out — a rule-checker looks at it first and decides **allow**, **deny**, or **ask a human**. Whatever it decides gets written down, time-stamped, with a signature no one can forge afterward. |
 | **Wrapping** a call | Taking the *one line* of your existing code that does the consequential thing, and putting a thin layer around it: check permission → do the real thing (only if allowed) → write down proof. Your code still does exactly what it did before. Nothing about the business logic changes. |
-| What governing an action **gives you** | A tamper-proof, independently checkable record that says "this exact action happened, at this time, and it was allowed." Anyone — an auditor, a customer, a curious engineer — can check that record themselves with a free public tool, without trusting your word, your logs, or your database. |
+| What governing an action **gives you** | A tamper-evident, independently checkable record of a decision and (when it ran) its outcome: "this action was evaluated at this time and allowed." Anyone — an auditor, a customer, a curious engineer — can check that the record is signed and unmodified with a free public tool. The signature covers the record; it does not show that other, ungoverned paths were safe. |
 
 If you remember nothing else: **strix-wire doesn't change what your code does.
 It adds a checkpoint in front of one risky line, and a receipt behind it.**
@@ -81,9 +103,9 @@ two get you a wrapped-but-unrun codebase, three get you the proof.
 | Need | Why |
 |------|-----|
 | **Claude Code** (CLI or desktop) | strix-wire is a Claude Code skill, not a standalone binary. |
-| **Python 3** | Runs the scanner + the safety preflight. Stdlib only — nothing to `pip install`. |
+| **Python 3** | Runs the scanner + the safety preflight (stdlib only). Offline Mode's signing also needs the `cryptography` package (`pip install -r requirements-test.txt` pulls it in); it fails loudly rather than writing an unsigned record if it is missing. |
 | **Node + npm** | Only for the final self-check (`npx @strixgov/verifier`). |
-| **No Strix account** | If no API key is set, **Sandbox Mode** auto-provisions a short-lived sandbox credential — you still get a real, hosted, signed decision. (Offline Mode provisions nothing and contacts nothing.) |
+| **No Strix account** | Offline Mode needs none and contacts nothing. Sandbox Mode (hosted) is *designed* to auto-provision a short-lived credential when no API key is set, but as of the 2026-11-06 status check above the hosted evaluate step failed, so treat it as unverified. |
 
 > **Use a non-production sandbox repo the first time.** strix-wire fires one
 > real action. The preflight guard refuses to run in a live or already-governed
@@ -193,14 +215,17 @@ The original action **never runs**. No charge, no delete, no email — nothing.
 You'd see a "denied" or "needs approval" message in place of the result.
 
 **Do I need to sign up for anything?**
-No. Sandbox Mode auto-provisions a short-lived, scoped credential the first
-time it runs. Offline Mode needs nothing at all, not even a network
-connection — see the mode comparison in [`README.md`](./README.md).
+Not for Offline Mode: it needs no account and no network. Sandbox Mode is
+designed to auto-provision a short-lived, scoped credential without an
+account, but it is hosted (it uses the network) and its last end-to-end check
+did not complete — see the status note at the top. See the mode comparison in
+[`README.md`](./README.md).
 
 **Is any of my data or code sent somewhere?**
-Only the one action's non-secret parameters (amounts, IDs — never API keys,
-tokens, or card numbers) go to the hosted kernel, and only in Sandbox Mode.
-Offline Mode sends nothing anywhere, ever.
+Your source code is not sent. In Sandbox Mode the capability name, actor id,
+a parameter hash, timestamps and the action's parameters (in plain text) go to
+the hosted service, plus your IP address — so use synthetic values only. In
+Offline Mode nothing is sent; the helper makes no network calls.
 
 **What's this "proof" / "evidence record" actually good for?**
 It's a signed, timestamped statement — "this action happened, at this time,
@@ -214,7 +239,11 @@ strix-wire only ever wraps the **one** call you approved. Everything else it
 found is reported as a count ("…and 14 more ungoverned action points") so you
 know the size of the gap — nothing else is modified. Run `/strix-wire` again
 to wrap the next one (expect the already-governed preflight check described
-in "Next steps"), or `solo govern coverage` for the full map.
+in "Next steps"), or `solo govern scan` / `solo govern coverage` for a **static
+inventory** of known patterns. That inventory is not a complete map: in
+`solo-builder-core` 0.4.1 it found 9 of 13 hand-labelled supported-language
+actions and 0 of 10 in other languages or indirect calls, and it reports hits,
+not what it cannot see (see [`validation/solo-govern/`](../../validation/solo-govern/)).
 
 **Can I undo this?**
 Yes — it's a normal code change. `git diff` shows exactly the helper file
@@ -222,9 +251,9 @@ added and the one call site rewritten; `git checkout -- <file>` (or your
 usual revert) removes it like any other edit.
 
 **What's the difference between "Sandbox Mode" and "Offline Mode"?**
-Sandbox Mode talks to the real, hosted Strix service (no account needed) and
-gets a record Strix itself vouches for. Offline Mode never leaves your
-machine — a key you hold signs the record instead, which proves it's
+Sandbox Mode talks to the hosted Strix service over the network (designed to
+need no account) and gets a record Strix itself signs. Offline Mode never
+leaves your machine — a key you hold signs the record instead, which proves it's
 tamper-evident but not that a third party (Strix) witnessed it. Pick Offline
 Mode if you have no network access or don't want any hosted dependency at
 all. Full comparison table in [`README.md`](./README.md).

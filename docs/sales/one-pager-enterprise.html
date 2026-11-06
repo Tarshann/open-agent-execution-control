@@ -61,13 +61,13 @@
 
   <section>
     <h2>The Strix answer</h2>
-    <div class="pull">Nothing executes until evaluated, and every decision produces <em>cryptographically signed proof</em> anyone can verify.</div>
+    <div class="pull">On a governed route, nothing executes until it's evaluated, and every decision produces a <em>signed record</em> anyone can verify. A call that bypasses the route is not covered.</div>
     <ul>
       <li><strong>Before:</strong> every governed action is evaluated against your policy (allow, deny, or route to a human approver) <em>before</em> it executes. A denied action never runs.</li>
       <li><strong>After:</strong> an Ed25519-signed, timestamped receipt records what ran, when, and under what decision. Your auditor, your customer, or your own engineers can verify it with a free open-source tool (<code>npx @strixgov/verifier</code>) with zero access to your systems, and without taking Strix's word for it.</li>
-      <li><strong>Secrets stay yours:</strong> Strix stores credential <em>references</em>, never credential values. Only an action's non-secret parameters travel; never API keys, tokens, or card data.</li>
+      <li><strong>Secrets stay yours:</strong> Strix stores credential <em>references</em>, never credential values. In hosted modes, what travels includes the action's parameters (in plain text in the evidence record), so pilots use synthetic data only: no API keys, tokens, card data or health data. Offline Mode sends nothing.</li>
     </ul>
-    <p>Strix is running in production today, governing live capabilities, and is currently in private beta for new tenants.</p>
+    <p>Strix's hosted runtime is in private beta for new tenants. The open skills and proxy are evaluated first on synthetic data in a sandbox.</p>
   </section>
 
   <section>
@@ -96,8 +96,8 @@
     <h2>What this means for your teams</h2>
     <table>
       <tr><th>Stakeholder</th><th>Outcome</th></tr>
-      <tr><td><strong>CISO / Risk</strong></td><td>Policy-enforced pre-execution control over agent actions, deny-by-default on ungoverned paths, fail-closed safety checks</td></tr>
-      <tr><td><strong>Compliance / Audit</strong></td><td>Tamper-evident, independently verifiable evidence records; the verifier is public and vendor-independent</td></tr>
+      <tr><td><strong>CISO / Risk</strong></td><td>Policy-enforced pre-execution control on the routes you wire, a deny-by-default policy on those routes, and an explicit list of paths that remain uncovered</td></tr>
+      <tr><td><strong>Compliance / Audit</strong></td><td>Tamper-evident, independently verifiable evidence records that can serve as <em>input</em> to an audit; not a compliance attestation or certification</td></tr>
       <tr><td><strong>Engineering</strong></td><td>Minutes to a first governed action, a one-line wrap with business logic unchanged, MIT tooling with no lock-in at the trust layer</td></tr>
       <tr><td><strong>Procurement</strong></td><td>Open-core: evaluate the full methodology and skills free before any commercial commitment</td></tr>
     </table>
@@ -106,9 +106,9 @@
   <section>
     <h2>Evaluation path: a zero-risk pilot</h2>
     <ol>
-      <li><strong>Day 1:</strong> engineers install the open skills and wire one governed action in a sandbox repo. No account, no data shared, about 2 minutes to a signed receipt.</li>
-      <li><strong>Week 1:</strong> verify receipts independently, and run the SGRF review lenses against a system you already operate.</li>
-      <li><strong>Pilot:</strong> a hosted tenant with your own policies and approval routes governing real agent capabilities. Book a demo at strixgov.com.</li>
+      <li><strong>Day 1:</strong> engineers install the open skills and wire one governed action in a throwaway repo. Offline Mode needs no account and no network. Sandbox Mode is hosted, sends the action's parameters to Strix, and should be used with synthetic values only.</li>
+      <li><strong>Week 1:</strong> verify receipts independently, and run the SGRF review lenses against a copy of a system you operate. The lenses are advisory reviews, not a merge gate, runtime control or certification.</li>
+      <li><strong>Pilot:</strong> one customer-selected codebase, one consequential action, one named route; no production writes, PHI, live payments or customer credentials. See <code>docs/pilot/CUSTOMER-SAFE-PILOT.md</code>. Book a demo at strixgov.com.</li>
     </ol>
   </section>
 

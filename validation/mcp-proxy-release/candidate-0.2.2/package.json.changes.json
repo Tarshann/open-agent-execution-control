@@ -1,0 +1,18 @@
+{
+  "files": [
+    "src/",
+    "bin/",
+    "scripts/",
+    "test/",
+    "!test/installed-tarball.test.mjs",
+    "examples/",
+    "README.md",
+    "CHANGELOG.md",
+    "COMMERCIAL.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node scripts/run-tests.mjs"
+  }
+}

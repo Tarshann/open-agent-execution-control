@@ -1,0 +1,15 @@
+{
+  "name": "strix-mcp-proxy-boundary-validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Disposable fixture that records proxy allow / deny / approval-timeout / approved-execution and the out-of-proxy path. Not a product package.",
+  "scripts": {
+    "validate": "node run.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@strixgov/mcp-proxy": "0.2.1",
+    "@strixgov/verifier": "1.24.1"
+  }
+}

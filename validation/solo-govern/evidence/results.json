@@ -1,0 +1,194 @@
+{
+  "solo_version": "solo 0.4.1",
+  "exit_code": 0,
+  "scan_ok": true,
+  "positive": {
+    "total": 13,
+    "detected": 9,
+    "rows": [
+      {
+        "file": "positive/payments.py",
+        "line": 5,
+        "what": "payment (stripe PaymentIntent.create)",
+        "detected": true,
+        "capability_id": "payment.charge"
+      },
+      {
+        "file": "positive/payments.py",
+        "line": 9,
+        "what": "payment (stripe Refund.create)",
+        "detected": true,
+        "capability_id": "payment.refund"
+      },
+      {
+        "file": "positive/files_and_db.py",
+        "line": 8,
+        "what": "file delete (shutil.rmtree)",
+        "detected": true,
+        "capability_id": "filesystem.delete"
+      },
+      {
+        "file": "positive/files_and_db.py",
+        "line": 12,
+        "what": "file delete (os.remove)",
+        "detected": true,
+        "capability_id": "filesystem.delete"
+      },
+      {
+        "file": "positive/files_and_db.py",
+        "line": 17,
+        "what": "db delete (cursor.execute DELETE)",
+        "detected": true,
+        "capability_id": "database.delete"
+      },
+      {
+        "file": "positive/files_and_db.py",
+        "line": 22,
+        "what": "process exec (subprocess.run shell=True)",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "positive/outbound.py",
+        "line": 7,
+        "what": "email send (smtplib sendmail)",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "positive/outbound.py",
+        "line": 11,
+        "what": "outbound write (requests.post)",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "positive/service.ts",
+        "line": 7,
+        "what": "payment (stripe.charges.create)",
+        "detected": true,
+        "capability_id": "payment.charge"
+      },
+      {
+        "file": "positive/service.ts",
+        "line": 11,
+        "what": "file delete (fs.rmSync)",
+        "detected": true,
+        "capability_id": "filesystem.delete"
+      },
+      {
+        "file": "positive/service.ts",
+        "line": 15,
+        "what": "outbound write (fetch POST)",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "positive/ai_calls.py",
+        "line": 6,
+        "what": "AI call (anthropic messages.create)",
+        "detected": true,
+        "capability_id": "ai.completion"
+      },
+      {
+        "file": "positive/ai_calls.py",
+        "line": 10,
+        "what": "AI call (openai chat.completions.create)",
+        "detected": true,
+        "capability_id": "ai.completion"
+      }
+    ]
+  },
+  "unsupported": {
+    "total": 10,
+    "detected": 0,
+    "rows": [
+      {
+        "file": "unsupported/cleanup.go",
+        "line": 9,
+        "what": "go os.RemoveAll",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/cleanup.go",
+        "line": 11,
+        "what": "go http.Post",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/Cleanup.java",
+        "line": 4,
+        "what": "java Files.delete",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/cleanup.rb",
+        "line": 2,
+        "what": "ruby File.delete",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/cleanup.sh",
+        "line": 2,
+        "what": "shell rm -rf",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/cleanup.sh",
+        "line": 3,
+        "what": "shell curl -X POST",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/migration.sql",
+        "line": 1,
+        "what": "sql DROP TABLE",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/migration.sql",
+        "line": 2,
+        "what": "sql DELETE FROM",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/indirect.py",
+        "line": 7,
+        "what": "python aliased call (rm = shutil.rmtree; rm(p))",
+        "detected": false,
+        "capability_id": null
+      },
+      {
+        "file": "unsupported/indirect.py",
+        "line": 11,
+        "what": "python dynamic dispatch (getattr)",
+        "detected": false,
+        "capability_id": null
+      }
+    ],
+    "scan_reported_ok_despite_misses": true
+  },
+  "negative_dir_false_positives": [],
+  "unlabelled_hits_outside_ground_truth": [
+    {
+      "file": "positive/ai_calls.py",
+      "line": 1,
+      "capability_id": "ai.completion",
+      "snippet": "from anthropic import Anthropic"
+    },
+    {
+      "file": "positive/ai_calls.py",
+      "line": 2,
+      "capability_id": "ai.completion",
+      "snippet": "from openai import OpenAI"
+    }
+  ]
+}
