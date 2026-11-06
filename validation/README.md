@@ -35,8 +35,11 @@ customers. Versions: `@strixgov/mcp-proxy` 0.2.1, `@strixgov/guard` 0.1.1,
   from the tarball (`!test/installed-tarball.test.mjs`).
 - **Guard 0.1.1:** clean install of the tarball ships `test/` and `npm test` → 12/12 pass,
   matching the reported "12 tests".
-- **Not done:** the change is not applied to `packages/strixgov-mcp-proxy` in the source repo
-  and nothing was published. The candidate's tarball integrity
+- **Update, later 2026-11-06:** the change was applied (strix-platform #2733) and **0.2.2 was published**
+  from `d9a8d8b14`. A clean install of the registry tarball runs 66 tests, 66 pass, 0 skipped, and
+  `manifests/mcp-proxy-0.2.2.json` verifies (registry integrity, per-file hashes, source commit).
+  The paragraph below describes the pre-publish state.
+- **Pre-publish state:** the change was not yet applied to `packages/strixgov-mcp-proxy` and nothing was published. The candidate's tarball integrity
   (`sha512-Eu+ddcMTfqp7QsiB19Exm4b2dTER/Dt2h0nbIvbBOWrPgYPOkjTzuk2hFan+9c0RFSw01UAmG6P2um249OQPTg==`)
   was produced on this machine and will change when it is rebuilt by `pnpm publish`.
   The SGRF change lens flagged that `scripts/` and `test/` contents were unreviewed; the
