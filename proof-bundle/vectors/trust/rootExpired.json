@@ -1,0 +1,19 @@
+{
+  "format": "strix-ppb-trust-store",
+  "formatVersion": "1.0",
+  "keys": [
+    {
+      "keyId": "vec-issuer-root",
+      "role": "issuer-root",
+      "owner": "SYNTHETIC TEST ISSUER ROOT - never trust",
+      "status": "active",
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "vec-issuer-root",
+        "x": "gsv36z7nh0XMng-I7Q2onXOGzSdJSuKdt89Gu7TNPU4"
+      },
+      "notAfter": "2025-06-01T00:00:00.000Z"
+    }
+  ]
+}

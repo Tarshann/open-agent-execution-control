@@ -33,3 +33,30 @@ jobs:
         run: python -m pip install -r requirements-test.txt
       - name: Run the skills suites
         run: python -m pytest skills -q -rs
+      - name: Proof bundle - second (Python) verifier implementation over the public vectors
+        run: python -m pytest proof-bundle/python -q -rs
+
+  proof-bundle:
+    # Portable Proof Bundle v1. Dependency-free on purpose: the verifier must run
+    # on a clean machine. Node 18 is the declared floor; 22 is current LTS.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ["18", "22"]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: proof-bundle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Vectors reproduce byte-for-byte
+        run: node vectors/generate.mjs --check
+      - name: Release checksums are current
+        run: node scripts/build-release.mjs --check
+      - name: Node suite
+        shell: bash
+        run: node --test test/*.test.mjs

@@ -1,0 +1,15 @@
+{
+  "name": "strix-proof-bundle-validation",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Drives the real strix-mcp-proxy over a disposable fixture, then exports each recorded governed action as a Portable Proof Bundle. Not a product package.",
+  "scripts": {
+    "validate": "node run.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@strixgov/mcp-proxy": "0.2.2",
+    "@strixgov/verifier": "1.25.0"
+  }
+}

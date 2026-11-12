@@ -1,0 +1,12 @@
+{
+  "format": "strix-ppb-signature",
+  "formatVersion": "1.0",
+  "payloadType": "application/vnd.strix.ppb.manifest.v1+json",
+  "signatures": [
+    {
+      "keyId": "strix-demo",
+      "algorithm": "Ed25519",
+      "signature": "Dr9C8AGBNh80bJRWPWLE2wW2mJWsCrJR_FAtnLRbuhYf-m7rqPk01Kr2T43rWZSd1l03La1L_f9F8B0Tqo2HAg"
+    }
+  ]
+}

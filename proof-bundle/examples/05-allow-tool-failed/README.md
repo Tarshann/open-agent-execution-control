@@ -1,0 +1,32 @@
+# Strix Portable Proof Bundle
+
+This directory is an evidence package for ONE governed action. This file is
+explanatory only: the verifier never reads it, and nothing in it is a finding.
+
+| | |
+|---|---|
+| Bundle | `(see manifest.json)` (format 1.0) |
+| Action | `mcp.callTool:archive_note` (capability `mcp.demo.archive_note`) |
+| Receipt | `rcpt_62d64a9d844f3ad302ddc6ef` |
+| Tenant / environment | `local` / `local` |
+| Recorded decision | ALLOW |
+| Execution outcome record | FAILED |
+| Signed by key | `strix-demo` |
+
+## Verify it yourself, offline
+
+```
+node strix-proof-verify.mjs verify <this-directory> --trust-store <your-trust-store.json>
+```
+
+Use a trust store you obtained from the signer through a channel that is
+independent of this bundle. `trust/embedded-signer-keys.json` is a
+convenience copy and is never treated as trusted.
+
+## What a passing verification means
+
+It means the files are unchanged since they were signed, the signatures are
+valid, the signer is one you chose to trust, and the records agree with each
+other. It does **not** mean the action was enforced, executed, safe, or
+compliant. The verifier prints exactly which statements the evidence supports
+and which it does not.

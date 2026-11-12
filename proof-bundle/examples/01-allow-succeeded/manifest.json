@@ -1,0 +1,76 @@
+{
+  "format": "strix-portable-proof-bundle",
+  "formatVersion": "1.0",
+  "critical": [],
+  "bundleId": "ppb_cef8810a1f4e3e07a6cd2e42e1056587",
+  "createdAt": "2026-11-12T21:24:02.407Z",
+  "exporter": {
+    "name": "strix-proof-export",
+    "version": "1.0.0"
+  },
+  "subject": {
+    "kind": "governed-action",
+    "receiptId": "rcpt_038c1de8128ee0a1219412d9",
+    "tenantId": "local",
+    "environment": "local",
+    "capabilityId": "mcp.demo.read_note",
+    "action": "mcp.callTool:read_note",
+    "invocationHash": "aa48c092bd09e184788eb6f63aa3a20a0b15a4468e02c4216b36dadcf7a47ea1"
+  },
+  "evidence": {
+    "authorizationDecision": "PRESENT",
+    "executionOutcome": "PRESENT",
+    "enforcementObservation": "NOT_CAPTURED",
+    "invocationDisclosure": "PRESENT",
+    "policyDisclosure": "PRESENT"
+  },
+  "digestAlgorithm": "sha-256",
+  "artifacts": [
+    {
+      "path": "README.md",
+      "role": "explanatory",
+      "sha256": "6ec3de8dbee8b507a8fa215907648ce5426c2bf63f89bdc9c8b49073c3e62caa",
+      "size": 1205
+    },
+    {
+      "path": "disclosures/invocation.json",
+      "role": "invocation-disclosure",
+      "sha256": "ed6b01eff870d0823d489cab69dcbf019f1220f1859053f88d32c59740d4969e",
+      "size": 150
+    },
+    {
+      "path": "disclosures/policy-ruleset.json",
+      "role": "policy-disclosure",
+      "sha256": "07291cb5b37089c66715b89bf4b596867fcddb183a807c7063b431966903ad99",
+      "size": 221
+    },
+    {
+      "path": "evidence/authorization-receipt.json",
+      "role": "authorization-receipt",
+      "sha256": "46b927bceff6dd81dc100e28e0be612a71831c9002cd496827fbae8384fb0307",
+      "size": 823
+    },
+    {
+      "path": "evidence/execution-outcome.json",
+      "role": "execution-outcome",
+      "sha256": "eacf27cb8b6b93adc44c7322375a04294e52794b77d8465cfddcc6f73d0b80c1",
+      "size": 1051
+    },
+    {
+      "path": "trust/embedded-signer-keys.json",
+      "role": "embedded-signer-keys",
+      "sha256": "0f1bb28c226c644bad8a10f15867065cdd2a1cf8303bdea6a03919c211881cf7",
+      "size": 160
+    },
+    {
+      "path": "trust/issuer-authorizations.json",
+      "role": "issuer-authorizations",
+      "sha256": "163e5a908f9f6bc99f1e8ab2dcdb8b2346f6567f8a6b2232e467849a9d080c48",
+      "size": 1368
+    }
+  ],
+  "signer": {
+    "keyId": "strix-demo",
+    "algorithm": "Ed25519"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "strix-portable-proof-bundle",
+  "version": "1.0.0-rc.2",
+  "private": true,
+  "type": "module",
+  "description": "Strix Portable Proof Bundle v1: exporter for governed-action evidence and a zero-dependency offline verifier. Not published to npm.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bin": {
+    "strix-proof-verify": "verifier/strix-proof-verify.mjs",
+    "strix-proof-export": "exporter/strix-proof-export.mjs",
+    "strix-proof-authorize": "authority/strix-proof-authorize.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "vectors": "node vectors/generate.mjs",
+    "vectors:check": "node vectors/generate.mjs --check",
+    "release": "node scripts/build-release.mjs"
+  }
+}

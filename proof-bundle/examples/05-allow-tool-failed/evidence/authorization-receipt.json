@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "2",
+  "receiptId": "rcpt_62d64a9d844f3ad302ddc6ef",
+  "capabilityId": "mcp.demo.archive_note",
+  "action": "mcp.callTool:archive_note",
+  "decision": "ALLOW",
+  "risk": "LOW",
+  "mode": "WRITE",
+  "policyVersion": "sha256:a59976bf642e84dbc7e76863a6682ed54175a9fc5f1ca987bbbde729ae988af9",
+  "tenantId": "local",
+  "environment": "local",
+  "invocationHash": "82c75153cbd9291ec589c4ba5f0889feb52927fd2a8a3e26d89f99c215976603",
+  "evidenceHash": "b482430fa99a3c7ffb86cbe8b788df0d385a4682f431c2c9998bee5626232e35",
+  "proofChainHash": "aae9aacf3a71aba0ed092d9c4f604539be377fcfcf8c27ee09dc3e4bc49d4f39",
+  "timestamp": "2026-11-12T21:23:59.785Z",
+  "signingKeyId": "strix-demo",
+  "signature": "Xgqm5Dzhp1ZF-7Y3DtgBk2fONFugPHB3vUU6I5fcyDLqqD0gTz6aTtpwbgju12_yqV6vO50ZeELIVEHshueSAA",
+  "tool": "strix-gateway"
+}

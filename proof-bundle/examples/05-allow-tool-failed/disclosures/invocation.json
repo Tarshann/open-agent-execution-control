@@ -1,0 +1,9 @@
+{
+  "capabilityId": "mcp.demo.archive_note",
+  "action": "mcp.callTool:archive_note",
+  "args": {
+    "note": "F"
+  },
+  "actorId": "",
+  "actorRole": ""
+}

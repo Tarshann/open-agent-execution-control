@@ -1,0 +1,11 @@
+{
+  "payloadType": "application/vnd.strix.ppb.authorization-revocations.v1+json",
+  "payload": "ewogICJ0eXBlIjogInN0cml4LXBwYi1hdXRob3JpemF0aW9uLXJldm9jYXRpb25zIiwKICAidmVyc2lvbiI6ICIxLjAiLAogICJpc3N1ZXIiOiAiU1lOVEhFVElDIFRFU1QgSVNTVUVSIiwKICAiaXNzdWVkQXQiOiAiMjAyNi0wNi0wMVQwMDowMDowMC4wMDBaIiwKICAicmV2b2tlZCI6IFtdCn0K",
+  "signatures": [
+    {
+      "keyId": "vec-issuer-root",
+      "algorithm": "Ed25519",
+      "signature": "pvvnT7U_oV-qhCL4lZMchIxVG7UTttExwrc4GvQUmw05NRs6FFm7QSxV-6aprP9zYBnqSBW90V6SPcHDQ9k6Dg"
+    }
+  ]
+}

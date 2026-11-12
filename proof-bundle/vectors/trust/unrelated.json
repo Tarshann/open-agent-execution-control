@@ -1,0 +1,17 @@
+{
+  "format": "strix-ppb-trust-store",
+  "formatVersion": "1.0",
+  "keys": [
+    {
+      "keyId": "someone-else",
+      "owner": "SYNTHETIC TEST SIGNER - never trust",
+      "status": "active",
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "someone-else",
+        "x": "SFLq_xkG9qXNlqEQ0BivgdtUUUGgAcjL_PEZ2G44-hQ"
+      }
+    }
+  ]
+}

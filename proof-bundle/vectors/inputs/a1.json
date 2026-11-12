@@ -1,0 +1,17 @@
+{
+  "format": "strix-ppb-issuer-authorizations",
+  "formatVersion": "1.0",
+  "authorizations": [
+    {
+      "payloadType": "application/vnd.strix.ppb.issuer-authorization.v1+json",
+      "payload": "ewogICJ0eXBlIjogInN0cml4LXBwYi1pc3N1ZXItYXV0aG9yaXphdGlvbiIsCiAgInZlcnNpb24iOiAiMS4wIiwKICAiYXV0aG9yaXphdGlvbklkIjogImlhX3ZlYy1zaWduZXItMjAyNiIsCiAgImlzc3VlciI6ICJTWU5USEVUSUMgVEVTVCBJU1NVRVIiLAogICJpc3N1ZWRBdCI6ICIyMDI2LTAxLTAxVDAwOjAwOjAwLjAwMFoiLAogICJzdWJqZWN0IjogewogICAgImdhdGV3YXlJZCI6ICJndy10ZXN0LTEiLAogICAgImtleUlkIjogInZlYy1zaWduZXItMjAyNiIsCiAgICAiandrIjogewogICAgICAia3R5IjogIk9LUCIsCiAgICAgICJjcnYiOiAiRWQyNTUxOSIsCiAgICAgICJ4IjogImxMRVVHU0NhQ21TclY0S1YwSDc3bjNhbjNEUG1EbFhYSzRYSU5IT3RkQkkiCiAgICB9CiAgfSwKICAic2NvcGUiOiB7CiAgICAidGVuYW50cyI6IFsKICAgICAgImFjbWUiCiAgICBdLAogICAgImVudmlyb25tZW50cyI6IFsKICAgICAgInByb2QiCiAgICBdLAogICAgInJlY29yZHMiOiBbCiAgICAgICJtYW5pZmVzdCIsCiAgICAgICJhdXRob3JpemF0aW9uLXJlY2VpcHQiLAogICAgICAiZXhlY3V0aW9uLW91dGNvbWUiCiAgICBdCiAgfSwKICAibm90QmVmb3JlIjogIjIwMjYtMDEtMDFUMDA6MDA6MDAuMDAwWiIsCiAgIm5vdEFmdGVyIjogIjIwMjYtMTItMzFUMjM6NTk6NTkuMDAwWiIKfQo=",
+      "signatures": [
+        {
+          "keyId": "vec-issuer-root",
+          "algorithm": "Ed25519",
+          "signature": "Df2MzaELY7RL4wl392Pne3LPdCz3c-3gbN9Jz2xkxokPwBIf57X3jJ3YPbxOy2580gm7hrSUWfrh6KtkkIT1Dg"
+        }
+      ]
+    }
+  ]
+}

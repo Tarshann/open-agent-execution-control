@@ -1,0 +1,9 @@
+{
+  "capabilityId": "mcp.demo.delete_note",
+  "action": "mcp.callTool:delete_note",
+  "args": {
+    "note": "B"
+  },
+  "actorId": "",
+  "actorRole": ""
+}

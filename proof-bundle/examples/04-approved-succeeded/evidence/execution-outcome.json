@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1",
+  "outcomeId": "out_2a3c3be9ac2a95f02871afce",
+  "authorizationReceiptId": "rcpt_c9ae78898995bdc645bd20c1",
+  "authorizationProofChainHash": "812b092679f13f92468aca11816a42d33cde25640dd4f20a6761f2f47cb20665",
+  "capabilityId": "mcp.demo.write_note",
+  "action": "mcp.callTool:write_note",
+  "decision": "ALLOW",
+  "executionAttempted": true,
+  "executionStatus": "SUCCEEDED",
+  "invocationHash": "afe2e742417a98c5339134bebe012d48f8baae569e10f30a09b5a0b5ba59b454",
+  "resultHash": "sha256:5c06e9521f152c93996eea4b9fdd465425f3a99aeeb41604a1598db76e075024",
+  "errorCode": "",
+  "policyVersion": "sha256:a59976bf642e84dbc7e76863a6682ed54175a9fc5f1ca987bbbde729ae988af9",
+  "tenantId": "local",
+  "environment": "local",
+  "completedAt": "2026-11-12T21:23:59.755Z",
+  "signingKeyId": "strix-demo",
+  "signatureAlgorithm": "Ed25519",
+  "outcomeHash": "sha256:ffee354b1f61cfb5f72bb3f4921c6baa108f813d905aa0565ce379421f861d55",
+  "signature": "PeqIBtSutl21qQ9kggAAw7ruT9794iwM_mVVy4aS5YiCxvFKxaColJ1uv6mFfUTyYzmttRXnIK0c2WmQ43T1Bg"
+}

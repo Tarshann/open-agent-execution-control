@@ -1,0 +1,9 @@
+{
+  "capabilityId": "mcp.demo.write_note",
+  "action": "mcp.callTool:write_note",
+  "args": {
+    "note": "D-approved"
+  },
+  "actorId": "",
+  "actorRole": ""
+}

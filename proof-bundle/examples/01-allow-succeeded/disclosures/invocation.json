@@ -1,0 +1,9 @@
+{
+  "capabilityId": "mcp.demo.read_note",
+  "action": "mcp.callTool:read_note",
+  "args": {
+    "note": "A"
+  },
+  "actorId": "",
+  "actorRole": ""
+}

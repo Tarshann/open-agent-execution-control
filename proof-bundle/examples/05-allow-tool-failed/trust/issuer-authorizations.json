@@ -1,0 +1,17 @@
+{
+  "format": "strix-ppb-issuer-authorizations",
+  "formatVersion": "1.0",
+  "authorizations": [
+    {
+      "payloadType": "application/vnd.strix.ppb.issuer-authorization.v1+json",
+      "payload": "ewogICJ0eXBlIjogInN0cml4LXBwYi1pc3N1ZXItYXV0aG9yaXphdGlvbiIsCiAgInZlcnNpb24iOiAiMS4wIiwKICAiYXV0aG9yaXphdGlvbklkIjogImlhX2RlbW8tbWNwLXByb3h5IiwKICAiaXNzdWVyIjogIkRFTU8gaXNzdWVyICh2YWxpZGF0aW9uIGhhcm5lc3MpIiwKICAiaXNzdWVkQXQiOiAiMjAyNi0xMS0xMlQyMToyNDowMi4yNjNaIiwKICAic3ViamVjdCI6IHsKICAgICJnYXRld2F5SWQiOiAibWNwLXByb3h5LWRlbW8iLAogICAgImtleUlkIjogInN0cml4LWRlbW8iLAogICAgImp3ayI6IHsKICAgICAgImt0eSI6ICJPS1AiLAogICAgICAiY3J2IjogIkVkMjU1MTkiLAogICAgICAieCI6ICI4ZU1wdkVJWEdPWDFhbGFQTEJ2c0VFeWZPM0N3RjcxdXU4MVNBYXJQa2RJIgogICAgfQogIH0sCiAgInNjb3BlIjogewogICAgInRlbmFudHMiOiBbCiAgICAgICJsb2NhbCIKICAgIF0sCiAgICAiZW52aXJvbm1lbnRzIjogWwogICAgICAibG9jYWwiCiAgICBdLAogICAgInJlY29yZHMiOiBbCiAgICAgICJtYW5pZmVzdCIsCiAgICAgICJhdXRob3JpemF0aW9uLXJlY2VpcHQiLAogICAgICAiZXhlY3V0aW9uLW91dGNvbWUiCiAgICBdCiAgfSwKICAibm90QmVmb3JlIjogIjIwMjYtMTEtMTFUMjE6MjQ6MDIuMjA5WiIsCiAgIm5vdEFmdGVyIjogIjIwMjctMTEtMTJUMjE6MjQ6MDIuMjEwWiIKfQo=",
+      "signatures": [
+        {
+          "keyId": "strix-demo-issuer-root",
+          "algorithm": "Ed25519",
+          "signature": "5btLgi7HcNd3St3TXBqiwRCwcE8-RcitQCBjW_oTB-lg9leKthWNr8TmjATZWAPwxMMXovnDJDNwYUz6eVDaDw"
+        }
+      ]
+    }
+  ]
+}

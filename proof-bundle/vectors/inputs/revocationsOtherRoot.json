@@ -1,0 +1,11 @@
+{
+  "payloadType": "application/vnd.strix.ppb.authorization-revocations.v1+json",
+  "payload": "ewogICJ0eXBlIjogInN0cml4LXBwYi1hdXRob3JpemF0aW9uLXJldm9jYXRpb25zIiwKICAidmVyc2lvbiI6ICIxLjAiLAogICJpc3N1ZXIiOiAiU1lOVEhFVElDIFRFU1QgSVNTVUVSIiwKICAiaXNzdWVkQXQiOiAiMjAyNi0wNi0wMVQwMDowMDowMC4wMDBaIiwKICAicmV2b2tlZCI6IFsKICAgIHsKICAgICAgImF1dGhvcml6YXRpb25JZCI6ICJpYV92ZWMtc2lnbmVyLTIwMjYiLAogICAgICAicmV2b2tlZEF0IjogIjIwMjYtMDYtMDFUMDA6MDA6MDAuMDAwWiIKICAgIH0KICBdCn0K",
+  "signatures": [
+    {
+      "keyId": "some-other-root",
+      "algorithm": "Ed25519",
+      "signature": "Tm76WffNZT5cKX86t0wCdf79QA0dZitpOznHDElBJYED4NHkvAdI5awPtfUKfi4Pcx_hkHDYwVLy50qX2ZVjCg"
+    }
+  ]
+}

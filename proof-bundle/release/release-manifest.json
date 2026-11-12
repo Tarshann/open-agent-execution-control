@@ -1,0 +1,43 @@
+{
+  "product": "Strix Portable Proof Bundle",
+  "version": "1.0.0-rc.2",
+  "status": "release candidate - not published, not deployed",
+  "formatVersion": "1.0",
+  "components": {
+    "strix-proof-verify": "1.0.0",
+    "strix-proof-export": "1.0.0",
+    "strix-proof-authorize": "1.0.0",
+    "ppb_verify.py": "1.0.0"
+  },
+  "requires": {
+    "node": ">=18.0.0",
+    "python": ">=3.11 (second implementation only), cryptography"
+  },
+  "files": {
+    "verifier/strix-proof-verify.mjs": {
+      "sha256": "36ca40a96d0bbd4cbe7b6bfe0cb2240254c2b12d3ad2f06b533a7fa84e74cfd5",
+      "bytes": 76519
+    },
+    "exporter/strix-proof-export.mjs": {
+      "sha256": "22d77651747e9137d86015fc373c1dc12cea398cbf2c1c4a4e9e21b7df1ab720",
+      "bytes": 25685
+    },
+    "authority/strix-proof-authorize.mjs": {
+      "sha256": "2aec7e1513b9d77bbf5d88f4fb5b59cd0fad81a334780c00cffbe58305b2e62e",
+      "bytes": 10302
+    },
+    "python/ppb_verify.py": {
+      "sha256": "75db28cd1d09d86abc1b60a1147cb20a2cb78a3a151511d3d4b241192b4b7fec",
+      "bytes": 44584
+    },
+    "docs/SPEC.md": {
+      "sha256": "110e87d94bcc5e30866eccbef87c87cda3be869a485c1223277c90d1fc9b471a",
+      "bytes": 27424
+    },
+    "vectors/index.json": {
+      "sha256": "a6210009be51fb1210492b117ece6ca529294c8746d7f0569f4c7f5d227b1473",
+      "bytes": 44931
+    }
+  },
+  "checksumsSigned": false
+}

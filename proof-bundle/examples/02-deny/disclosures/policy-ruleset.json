@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "mcp.demo.read_note": "ALLOW",
+    "mcp.demo.archive_note": "ALLOW",
+    "mcp.demo.write_note": "APPROVAL_REQUIRED",
+    "mcp.demo.delete_note": "DENY"
+  },
+  "riskOverrides": {},
+  "default": "DENY"
+}
