@@ -1,0 +1,16 @@
+{
+  "format": "strix-ppb-trust-store",
+  "formatVersion": "1.0",
+  "keys": [
+    {
+      "keyId": "vec-signer-2026",
+      "status": null,
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "vec-signer-2026",
+        "x": "lLEUGSCaCmSrV4KV0H77n3an3DPmDlXXK4XINHOtdBI"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "format": "strix-ppb-trust-store",
+  "formatVersion": "1.0",
+  "keys": [
+    {
+      "keyId": "vec-signer-2026",
+      "owner": "SYNTHETIC TEST SIGNER - never trust",
+      "status": "active",
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "vec-signer-2026",
+        "x": "lLEUGSCaCmSrV4KV0H77n3an3DPmDlXXK4XINHOtdBI"
+      }
+    },
+    {
+      "keyId": "vec-signer-2025",
+      "owner": "SYNTHETIC TEST SIGNER (retired key) - never trust",
+      "status": "retired",
+      "notAfter": "2025-12-31T23:59:59.000Z",
+      "jwk": {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "kid": "vec-signer-2025",
+        "x": "OnGgqbJ8fu0EoHhE0ZIg_mBResJI7sFlFvxcu7nHAjQ"
+      }
+    }
+  ]
+}

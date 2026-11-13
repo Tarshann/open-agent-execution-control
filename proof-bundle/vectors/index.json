@@ -1,0 +1,1457 @@
+{
+  "description": "Public test vectors for Strix Portable Proof Bundle v1. ALL SYNTHETIC: issued with test keys derivable from test/helpers/synth.mjs. Never add these keys to a real trust store.",
+  "formatVersion": "1.0",
+  "generatedBy": "vectors/generate.mjs",
+  "vectors": [
+    {
+      "name": "valid-allow-succeeded",
+      "description": "ALLOW with a SUCCEEDED outcome, invocation and policy disclosed.",
+      "bundle": "bundles/valid-allow-succeeded.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C04": "SOURCE_ASSERTION/ASSERTED",
+          "PPB-C05": "CORROBORATED/ESTABLISHED",
+          "PPB-C06": "CORROBORATED/ESTABLISHED",
+          "PPB-C09": "NOT_ESTABLISHED/NOT_ESTABLISHED",
+          "PPB-C10": "SOURCE_ASSERTION/ASSERTED"
+        }
+      }
+    },
+    {
+      "name": "valid-allow-succeeded-jwks-trust",
+      "description": "Same bundle, trust supplied as a plain JWKS.",
+      "bundle": "bundles/valid-allow-succeeded-jwks-trust.ppb.json",
+      "trustStore": "trust/jwks.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "valid-allow-no-outcome",
+      "description": "ALLOW decision, no execution record in the store: execution is NOT established.",
+      "bundle": "bundles/valid-allow-no-outcome.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C06": "NOT_ESTABLISHED/NOT_ESTABLISHED",
+          "PPB-C10": "NOT_ESTABLISHED/NOT_ESTABLISHED"
+        }
+      }
+    },
+    {
+      "name": "valid-deny",
+      "description": "DENY decision: prevention is NOT established, outcome NOT_APPLICABLE.",
+      "bundle": "bundles/valid-deny.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C04": "SOURCE_ASSERTION/ASSERTED",
+          "PPB-C09": "NOT_ESTABLISHED/NOT_ESTABLISHED",
+          "PPB-C10": "NOT_ESTABLISHED/NOT_APPLICABLE"
+        }
+      }
+    },
+    {
+      "name": "valid-allow-tool-failed",
+      "description": "ALLOW decision whose execution FAILED.",
+      "bundle": "bundles/valid-allow-tool-failed.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C10": "SOURCE_ASSERTION/ASSERTED"
+        }
+      }
+    },
+    {
+      "name": "valid-approved",
+      "description": "Approval fields present: reported as an export-time source assertion.",
+      "bundle": "bundles/valid-approved.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C08": "SOURCE_ASSERTION/ASSERTED"
+        }
+      }
+    },
+    {
+      "name": "valid-unicode-disclosure",
+      "description": "Disclosed arguments with non-ASCII keys (incl. astral), escapes and non-integer numbers.",
+      "bundle": "bundles/valid-unicode-disclosure.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C06": "CORROBORATED/ESTABLISHED"
+        }
+      }
+    },
+    {
+      "name": "valid-rotated-keys",
+      "description": "Records signed by a retired key, manifest by the current key; both trusted.",
+      "bundle": "bundles/valid-rotated-keys.ppb.json",
+      "trustStore": "trust/both.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "valid-receipt-schema-1",
+      "description": "Receipt schema 1 carries no tenant: subject says UNSPECIFIED.",
+      "bundle": "bundles/valid-receipt-schema-1.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "valid-no-embedded-keys",
+      "description": "No convenience key copy in the bundle.",
+      "bundle": "bundles/valid-no-embedded-keys.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "trust-none-supplied",
+      "description": "Valid bundle, no trust store: mathematics only, origin not authenticated.",
+      "bundle": "bundles/trust-none-supplied.ppb.json",
+      "trustStore": null,
+      "expect": {
+        "overall": "INCOMPLETE",
+        "exit": 3,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C03": "TRUST_EVALUATION/NOT_ESTABLISHED",
+          "PPB-C04": "SOURCE_ASSERTION/ASSERTED_BY_UNTRUSTED_KEY",
+          "PPB-C10": "SOURCE_ASSERTION/ASSERTED_BY_UNTRUSTED_KEY"
+        }
+      }
+    },
+    {
+      "name": "trust-none-supplied-no-embedded",
+      "description": "No trust store and no embedded key: signatures cannot even be checked.",
+      "bundle": "bundles/trust-none-supplied-no-embedded.ppb.json",
+      "trustStore": null,
+      "expect": {
+        "overall": "INCOMPLETE",
+        "exit": 3,
+        "failureCodes": [],
+        "noClaims": true
+      }
+    },
+    {
+      "name": "trust-signer-not-in-store",
+      "description": "Trust store does not contain the signer.",
+      "bundle": "bundles/trust-signer-not-in-store.ppb.json",
+      "trustStore": "trust/unrelated.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "trust-wrong-key-same-id",
+      "description": "Trust store has a different key under the signer's key id.",
+      "bundle": "bundles/trust-wrong-key-same-id.ppb.json",
+      "trustStore": "trust/wrongKeySameId.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "trust-revoked",
+      "description": "Signer key is marked revoked in the trust store.",
+      "bundle": "bundles/trust-revoked.ppb.json",
+      "trustStore": "trust/revoked.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_REVOKED"
+        ]
+      }
+    },
+    {
+      "name": "trust-outside-validity",
+      "description": "Signer key used after its notAfter.",
+      "bundle": "bundles/trust-outside-validity.ppb.json",
+      "trustStore": "trust/expired.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_OUTSIDE_VALIDITY"
+        ]
+      }
+    },
+    {
+      "name": "trust-other-tenant",
+      "description": "Signer key is scoped to another tenant (cross-tenant confusion).",
+      "bundle": "bundles/trust-other-tenant.ppb.json",
+      "trustStore": "trust/otherTenant.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_TENANT_NOT_AUTHORIZED"
+        ]
+      }
+    },
+    {
+      "name": "trust-rotation-old-key-missing",
+      "description": "Rotated bundle, trust store lacks the retired key.",
+      "bundle": "bundles/trust-rotation-old-key-missing.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "trust-attacker-resigned",
+      "description": "Whole bundle produced by an attacker key that reuses the real key id and embeds its own public key.",
+      "bundle": "bundles/trust-attacker-resigned.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "trust-attacker-resigned-no-store",
+      "description": "The same attacker bundle with no trust store: valid mathematics, never PASSED.",
+      "bundle": "bundles/trust-attacker-resigned-no-store.ppb.json",
+      "trustStore": null,
+      "expect": {
+        "overall": "INCOMPLETE",
+        "exit": 3,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C03": "TRUST_EVALUATION/NOT_ESTABLISHED"
+        }
+      }
+    },
+    {
+      "name": "expect-wrong-receipt",
+      "description": "Relying party expected a different receipt id (action substitution / replay of another bundle).",
+      "bundle": "bundles/expect-wrong-receipt.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expectOptions": {
+        "receiptId": "rcpt_ffffffffffffffffffffffff"
+      },
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "EXPECTATION_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "tamper-evidence-byte",
+      "description": "One byte of an evidence artifact changed.",
+      "bundle": "bundles/tamper-evidence-byte.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DIGEST_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "tamper-manifest-field",
+      "description": "A manifest field edited after signing.",
+      "bundle": "bundles/tamper-manifest-field.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "EVIDENCE_STATE_MISMATCH",
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "tamper-manifest-digest-and-artifact",
+      "description": "Artifact replaced and its manifest digest updated to match, without the signing key.",
+      "bundle": "bundles/tamper-manifest-digest-and-artifact.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DIGEST_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "tamper-artifact-replaced",
+      "description": "Receipt replaced by another validly signed receipt from the same signer.",
+      "bundle": "bundles/tamper-artifact-replaced.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DIGEST_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "tamper-artifact-removed",
+      "description": "A listed artifact deleted.",
+      "bundle": "bundles/tamper-artifact-removed.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "MISSING_ARTIFACT"
+        ]
+      }
+    },
+    {
+      "name": "tamper-artifact-inserted",
+      "description": "An unlisted file added that tries to supply enforcement evidence.",
+      "bundle": "bundles/tamper-artifact-inserted.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "UNEXPECTED_ARTIFACT"
+        ]
+      }
+    },
+    {
+      "name": "tamper-signature-swapped",
+      "description": "manifest.sig.json taken from a different valid bundle.",
+      "bundle": "bundles/tamper-signature-swapped.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "tamper-signature-removed",
+      "description": "manifest.sig.json deleted.",
+      "bundle": "bundles/tamper-signature-removed.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "MISSING_SIGNATURE"
+        ]
+      }
+    },
+    {
+      "name": "tamper-embedded-key-swapped",
+      "description": "Embedded convenience key replaced with an attacker key.",
+      "bundle": "bundles/tamper-embedded-key-swapped.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DIGEST_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "tamper-native-receipt-field",
+      "description": "Receipt decision flipped and manifest re-listed by someone without the key.",
+      "bundle": "bundles/tamper-native-receipt-field.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "RECEIPT_HASH_MISMATCH",
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "signed-subject-substituted",
+      "description": "Signed manifest names a different receipt than the one it carries.",
+      "bundle": "bundles/signed-subject-substituted.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SUBJECT_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-tenant-substituted",
+      "description": "Signed manifest names a different tenant than the receipt.",
+      "bundle": "bundles/signed-tenant-substituted.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SUBJECT_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-bundle-id-wrong",
+      "description": "bundleId is not the derived identifier.",
+      "bundle": "bundles/signed-bundle-id-wrong.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "BUNDLE_ID_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-deny-with-outcome",
+      "description": "A DENY receipt accompanied by an execution outcome.",
+      "bundle": "bundles/signed-deny-with-outcome.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "CONTRADICTORY_RECORDS"
+        ]
+      }
+    },
+    {
+      "name": "signed-outcome-of-other-action",
+      "description": "Outcome belongs to a different authorization.",
+      "bundle": "bundles/signed-outcome-of-other-action.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "OUTCOME_LINK_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-outcome-incoherent",
+      "description": "Outcome says SUCCEEDED and carries an error code.",
+      "bundle": "bundles/signed-outcome-incoherent.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "CONTRADICTORY_RECORDS"
+        ]
+      }
+    },
+    {
+      "name": "signed-outcome-before-decision",
+      "description": "Outcome completion time precedes the decision.",
+      "bundle": "bundles/signed-outcome-before-decision.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "TIMESTAMP_ORDER"
+        ]
+      }
+    },
+    {
+      "name": "signed-evidence-state-overclaims",
+      "description": "Manifest claims an enforcement observation that v1 cannot carry.",
+      "bundle": "bundles/signed-evidence-state-overclaims.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "EVIDENCE_STATE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-missing-outcome-called-not-applicable",
+      "description": "ALLOW with no outcome, manifest says NOT_APPLICABLE instead of ABSENT.",
+      "bundle": "bundles/signed-missing-outcome-called-not-applicable.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "EVIDENCE_STATE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-disclosure-mismatch",
+      "description": "Disclosed arguments are not the ones the receipt was issued for.",
+      "bundle": "bundles/signed-disclosure-mismatch.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DISCLOSURE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-policy-disclosure-mismatch",
+      "description": "Disclosed policy is not the version in the receipt.",
+      "bundle": "bundles/signed-policy-disclosure-mismatch.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "DISCLOSURE_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-policy-says-deny-decision-allow",
+      "description": "Disclosed policy maps the capability to DENY but the decision is ALLOW.",
+      "bundle": "bundles/signed-policy-says-deny-decision-allow.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "CONTRADICTORY_RECORDS"
+        ]
+      }
+    },
+    {
+      "name": "signed-receipt-hash-incoherent",
+      "description": "Receipt evidenceHash does not match its own fields.",
+      "bundle": "bundles/signed-receipt-hash-incoherent.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "RECEIPT_HASH_MISMATCH"
+        ]
+      }
+    },
+    {
+      "name": "signed-unrecognized-decision",
+      "description": "Decision value not defined in v1.",
+      "bundle": "bundles/signed-unrecognized-decision.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "UNRECOGNIZED_DECISION"
+        ]
+      }
+    },
+    {
+      "name": "signed-export-before-decision",
+      "description": "Bundle created before the decision it describes.",
+      "bundle": "bundles/signed-export-before-decision.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "TIMESTAMP_ORDER"
+        ]
+      }
+    },
+    {
+      "name": "auth-valid-root-only",
+      "description": "Relying party trusts only the issuer root; the bundle carries the gateway key's authorization.",
+      "bundle": "bundles/auth-valid-root-only.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C03": "TRUST_EVALUATION/ESTABLISHED",
+          "PPB-C04": "SOURCE_ASSERTION/ASSERTED"
+        }
+      }
+    },
+    {
+      "name": "auth-valid-supplied-out-of-band",
+      "description": "Bundle has no authorization; the relying party supplies the one it holds.",
+      "bundle": "bundles/auth-valid-supplied-out-of-band.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "issuerAuthorizations": "inputs/a1.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "auth-valid-revocation-checked",
+      "description": "Revocation list from the root supplied; this authorization is not on it.",
+      "bundle": "bundles/auth-valid-revocation-checked.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "revocations": "inputs/revokesOther.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "auth-valid-second-authorization",
+      "description": "Two authorizations for the key; the first by id is expired, the second covers the record.",
+      "bundle": "bundles/auth-valid-second-authorization.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "auth-valid-rotation",
+      "description": "Records under the previous gateway key, manifest under the current one; each key has its own authorization.",
+      "bundle": "bundles/auth-valid-rotation.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "auth-missing",
+      "description": "Valid signatures, root trusted, but nothing authorizes this gateway key: issuer not established.",
+      "bundle": "bundles/auth-missing.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "auth-no-trust-store",
+      "description": "Authorization present, no trust store: it proves nothing by itself.",
+      "bundle": "bundles/auth-no-trust-store.ppb.json",
+      "trustStore": null,
+      "expect": {
+        "overall": "INCOMPLETE",
+        "exit": 3,
+        "failureCodes": [],
+        "claims": {
+          "PPB-C03": "TRUST_EVALUATION/NOT_ESTABLISHED"
+        }
+      }
+    },
+    {
+      "name": "auth-issuer-root-unknown",
+      "description": "Authorization signed by a root that is not in the trust store.",
+      "bundle": "bundles/auth-issuer-root-unknown.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "auth-issuer-root-impersonated",
+      "description": "Authorization signed by an attacker key that reuses the real root's key id.",
+      "bundle": "bundles/auth-issuer-root-impersonated.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_AUTHORIZATION_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "auth-gateway-key-substituted",
+      "description": "Attacker signs with its own key under the gateway's key id and attaches the genuine authorization.",
+      "bundle": "bundles/auth-gateway-key-substituted.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "auth-scope-widened-by-gateway",
+      "description": "Gateway edits its own authorization (adds a tenant) and re-signs the bundle; the root's signature no longer matches.",
+      "bundle": "bundles/auth-scope-widened-by-gateway.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_AUTHORIZATION_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "auth-expired",
+      "description": "Record time is after the authorization's notAfter.",
+      "bundle": "bundles/auth-expired.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_OUTSIDE_VALIDITY"
+        ]
+      }
+    },
+    {
+      "name": "auth-not-yet-valid",
+      "description": "Record time is before the authorization's notBefore.",
+      "bundle": "bundles/auth-not-yet-valid.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_OUTSIDE_VALIDITY"
+        ]
+      }
+    },
+    {
+      "name": "auth-wrong-tenant",
+      "description": "Authorization covers another tenant.",
+      "bundle": "bundles/auth-wrong-tenant.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_TENANT_NOT_AUTHORIZED"
+        ]
+      }
+    },
+    {
+      "name": "auth-wrong-environment",
+      "description": "Authorization covers another environment.",
+      "bundle": "bundles/auth-wrong-environment.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_TENANT_NOT_AUTHORIZED"
+        ]
+      }
+    },
+    {
+      "name": "auth-record-kind-not-authorized",
+      "description": "Key is authorized for receipts and manifests, not execution outcomes.",
+      "bundle": "bundles/auth-record-kind-not-authorized.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_RECORD_NOT_AUTHORIZED"
+        ]
+      }
+    },
+    {
+      "name": "auth-revoked",
+      "description": "The root's revocation list names this authorization.",
+      "bundle": "bundles/auth-revoked.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "revocations": "inputs/revokesA1.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_REVOKED"
+        ]
+      }
+    },
+    {
+      "name": "auth-root-revoked",
+      "description": "The issuer root itself is marked revoked in the trust store.",
+      "bundle": "bundles/auth-root-revoked.ppb.json",
+      "trustStore": "trust/rootRevoked.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_REVOKED"
+        ]
+      }
+    },
+    {
+      "name": "auth-root-outside-validity",
+      "description": "Authorization issued after the root's own notAfter.",
+      "bundle": "bundles/auth-root-outside-validity.ppb.json",
+      "trustStore": "trust/rootExpired.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_OUTSIDE_VALIDITY"
+        ]
+      }
+    },
+    {
+      "name": "auth-rotation-old-key-unauthorized",
+      "description": "Rotation, but only the current key carries an authorization.",
+      "bundle": "bundles/auth-rotation-old-key-unauthorized.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "auth-receipt-signer-unauthorized",
+      "description": "Manifest signer is authorized; the receipt was signed by a key nothing authorizes.",
+      "bundle": "bundles/auth-receipt-signer-unauthorized.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "auth-root-used-as-record-signer",
+      "description": "Bundle signed directly with the issuer root key: a root authorizes, it does not sign records.",
+      "bundle": "bundles/auth-root-used-as-record-signer.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNER_UNTRUSTED"
+        ]
+      }
+    },
+    {
+      "name": "error-auth-unknown-field",
+      "description": "Authorization payload with a field v1 does not define.",
+      "bundle": "bundles/error-auth-unknown-field.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_AUTHORIZATION"
+      }
+    },
+    {
+      "name": "error-auth-algorithm",
+      "description": "Authorization envelope declares RS256.",
+      "bundle": "bundles/error-auth-algorithm.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_ALGORITHM"
+      }
+    },
+    {
+      "name": "error-revocation-list-forged",
+      "description": "Revocation list signed by a key that is not the trusted root (same key id).",
+      "bundle": "bundles/error-revocation-list-forged.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "revocations": "inputs/revocationsForged.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "REVOCATION_LIST_INVALID"
+      }
+    },
+    {
+      "name": "error-revocation-list-other-root",
+      "description": "Revocation list signed by a root you do not trust.",
+      "bundle": "bundles/error-revocation-list-other-root.ppb.json",
+      "trustStore": "trust/rootOnly.json",
+      "revocations": "inputs/revocationsOtherRoot.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "REVOCATION_LIST_INVALID"
+      }
+    },
+    {
+      "name": "signed-risk-names-object-property",
+      "description": "risk 'constructor' with a default-DENY policy and an ALLOW decision.",
+      "bundle": "bundles/signed-risk-names-object-property.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "CONTRADICTORY_RECORDS"
+        ]
+      }
+    },
+    {
+      "name": "valid-artifact-named-constructor",
+      "description": "An explanatory file called 'constructor'.",
+      "bundle": "bundles/valid-artifact-named-constructor.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "valid-embedded-keys-malformed",
+      "description": "Embedded key file with an entry that has no jwk: ignored, never fatal, never trusted.",
+      "bundle": "bundles/valid-embedded-keys-malformed.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "error-receipt-schema-names-object-property",
+      "description": "Receipt schemaVersion 'constructor'.",
+      "bundle": "bundles/error-receipt-schema-names-object-property.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_RECORD_VERSION"
+      }
+    },
+    {
+      "name": "error-receipt-schema-number",
+      "description": "Receipt schemaVersion is the number 2, not the string.",
+      "bundle": "bundles/error-receipt-schema-number.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_RECORD_VERSION"
+      }
+    },
+    {
+      "name": "error-receipt-declares-algorithm",
+      "description": "Receipt declares signatureAlgorithm RS256.",
+      "bundle": "bundles/error-receipt-declares-algorithm.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_ALGORITHM"
+      }
+    },
+    {
+      "name": "error-schema-1-receipt-with-tenant",
+      "description": "Schema-1 receipt with an (unsigned) tenantId written beside it.",
+      "bundle": "bundles/error-schema-1-receipt-with-tenant.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_RECORD"
+      }
+    },
+    {
+      "name": "error-receipt-hash-not-hex",
+      "description": "invocationHash is not 64 hex characters.",
+      "bundle": "bundles/error-receipt-hash-not-hex.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_RECORD"
+      }
+    },
+    {
+      "name": "error-receipt-lone-surrogate",
+      "description": "A string containing an unpaired surrogate escape.",
+      "bundle": "bundles/error-receipt-lone-surrogate.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-policy-rule-not-a-decision",
+      "description": "Disclosed policy with a rule value that is not ALLOW, DENY or APPROVAL_REQUIRED.",
+      "bundle": "bundles/error-policy-rule-not-a-decision.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_RECORD"
+      }
+    },
+    {
+      "name": "error-invocation-disclosure-extra-field",
+      "description": "Invocation disclosure with a sixth field.",
+      "bundle": "bundles/error-invocation-disclosure-extra-field.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_RECORD"
+      }
+    },
+    {
+      "name": "signed-invocation-names-other-action",
+      "description": "Receipt for tool:read whose invocationHash commits to a delete; the delete is disclosed.",
+      "bundle": "bundles/signed-invocation-names-other-action.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "CONTRADICTORY_RECORDS"
+        ]
+      }
+    },
+    {
+      "name": "signed-time-february-30",
+      "description": "Receipt timestamp 2026-02-30.",
+      "bundle": "bundles/signed-time-february-30.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "BAD_TIMESTAMP"
+        ]
+      }
+    },
+    {
+      "name": "signed-time-hour-24",
+      "description": "Receipt timestamp with hour 24.",
+      "bundle": "bundles/signed-time-hour-24.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "BAD_TIMESTAMP"
+        ]
+      }
+    },
+    {
+      "name": "signed-time-offset-minute-60",
+      "description": "Receipt timestamp with offset +00:60.",
+      "bundle": "bundles/signed-time-offset-minute-60.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "BAD_TIMESTAMP"
+        ]
+      }
+    },
+    {
+      "name": "signed-time-non-ascii-digits",
+      "description": "Receipt timestamp with Arabic-Indic fraction digits.",
+      "bundle": "bundles/signed-time-non-ascii-digits.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "BAD_TIMESTAMP"
+        ]
+      }
+    },
+    {
+      "name": "valid-time-with-offset",
+      "description": "Receipt timestamp with a +05:30 offset and nine fraction digits.",
+      "bundle": "bundles/valid-time-with-offset.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "PASSED",
+        "exit": 0,
+        "failureCodes": [],
+        "claims": {}
+      }
+    },
+    {
+      "name": "error-created-at-february-30",
+      "description": "Manifest createdAt 2026-02-30.",
+      "bundle": "bundles/error-created-at-february-30.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_MANIFEST"
+      }
+    },
+    {
+      "name": "signed-signature-encoding-not-canonical",
+      "description": "Receipt signature re-encoded with a stray trailing bit.",
+      "bundle": "bundles/signed-signature-encoding-not-canonical.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "FAILED",
+        "exit": 1,
+        "failureCodes": [
+          "SIGNATURE_INVALID"
+        ]
+      }
+    },
+    {
+      "name": "error-trust-store-null-status",
+      "description": "Trust store entry with status null.",
+      "bundle": "bundles/error-trust-store-null-status.ppb.json",
+      "trustStore": "trust/nullStatus.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_TRUST_STORE"
+      }
+    },
+    {
+      "name": "error-trust-store-entry-without-jwk",
+      "description": "Trust store entry with no jwk.",
+      "bundle": "bundles/error-trust-store-entry-without-jwk.ppb.json",
+      "trustStore": "trust/noJwk.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_TRUST_STORE"
+      }
+    },
+    {
+      "name": "error-unsupported-format-version",
+      "description": "formatVersion 2.0.",
+      "bundle": "bundles/error-unsupported-format-version.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_VERSION"
+      }
+    },
+    {
+      "name": "error-unknown-critical-extension",
+      "description": "A critical extension this verifier does not implement.",
+      "bundle": "bundles/error-unknown-critical-extension.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNKNOWN_CRITICAL_EXTENSION"
+      }
+    },
+    {
+      "name": "error-digest-algorithm-downgrade",
+      "description": "digestAlgorithm md5.",
+      "bundle": "bundles/error-digest-algorithm-downgrade.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_ALGORITHM"
+      }
+    },
+    {
+      "name": "error-signature-algorithm-none",
+      "description": "Manifest signer algorithm 'none'.",
+      "bundle": "bundles/error-signature-algorithm-none.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_ALGORITHM"
+      }
+    },
+    {
+      "name": "error-signature-envelope-algorithm",
+      "description": "Signature envelope declares HS256.",
+      "bundle": "bundles/error-signature-envelope-algorithm.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_ALGORITHM"
+      }
+    },
+    {
+      "name": "error-two-signatures",
+      "description": "Signature envelope with two signatures (ambiguous in v1).",
+      "bundle": "bundles/error-two-signatures.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_SIGNATURE"
+      }
+    },
+    {
+      "name": "error-unknown-manifest-field",
+      "description": "Unknown top-level manifest field.",
+      "bundle": "bundles/error-unknown-manifest-field.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_MANIFEST"
+      }
+    },
+    {
+      "name": "error-role-on-wrong-path",
+      "description": "Evidence role claimed by a file at a non-standard path.",
+      "bundle": "bundles/error-role-on-wrong-path.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_MANIFEST"
+      }
+    },
+    {
+      "name": "error-unsupported-receipt-schema",
+      "description": "Receipt schemaVersion 3.",
+      "bundle": "bundles/error-unsupported-receipt-schema.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSUPPORTED_RECORD_VERSION"
+      }
+    },
+    {
+      "name": "error-outcome-unsigned-extra-field",
+      "description": "Outcome carries a field its signature does not cover.",
+      "bundle": "bundles/error-outcome-unsigned-extra-field.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_RECORD"
+      }
+    },
+    {
+      "name": "error-malformed-manifest-json",
+      "description": "manifest.json is not JSON.",
+      "bundle": "bundles/error-malformed-manifest-json.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-duplicate-key-manifest",
+      "description": "manifest.json repeats a key.",
+      "bundle": "bundles/error-duplicate-key-manifest.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-duplicate-key-receipt",
+      "description": "Receipt repeats 'decision' (DENY then ALLOW).",
+      "bundle": "bundles/error-duplicate-key-receipt.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-bom-manifest",
+      "description": "manifest.json starts with a byte-order mark.",
+      "bundle": "bundles/error-bom-manifest.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-invalid-utf8-manifest",
+      "description": "manifest.json is not valid UTF-8.",
+      "bundle": "bundles/error-invalid-utf8-manifest.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-missing-manifest",
+      "description": "No manifest.json.",
+      "bundle": "bundles/error-missing-manifest.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "NOT_A_BUNDLE"
+      }
+    },
+    {
+      "name": "error-path-traversal",
+      "description": "Carrier entry '../outside.json'.",
+      "bundle": "bundles/error-path-traversal.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSAFE_PATH"
+      }
+    },
+    {
+      "name": "error-path-absolute",
+      "description": "Carrier entry '/etc/passwd'.",
+      "bundle": "bundles/error-path-absolute.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSAFE_PATH"
+      }
+    },
+    {
+      "name": "error-path-backslash",
+      "description": "Carrier entry 'evidence\\\\..\\\\x'.",
+      "bundle": "bundles/error-path-backslash.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "UNSAFE_PATH"
+      }
+    },
+    {
+      "name": "error-duplicate-key-carrier",
+      "description": "Carrier repeats a file name.",
+      "bundle": "bundles/error-duplicate-key-carrier.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_JSON"
+      }
+    },
+    {
+      "name": "error-case-colliding-paths",
+      "description": "Two entries that differ only by case.",
+      "bundle": "bundles/error-case-colliding-paths.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "DUPLICATE_PATH"
+      }
+    },
+    {
+      "name": "error-carrier-not-base64",
+      "description": "Carrier file content is not canonical base64.",
+      "bundle": "bundles/error-carrier-not-base64.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "MALFORMED_CARRIER"
+      }
+    },
+    {
+      "name": "error-not-a-carrier",
+      "description": "A JSON file that is not a carrier.",
+      "bundle": "bundles/error-not-a-carrier.ppb.json",
+      "trustStore": "trust/trusted.json",
+      "expect": {
+        "overall": "ERROR",
+        "exit": 2,
+        "errorCode": "NOT_A_BUNDLE"
+      }
+    }
+  ]
+}

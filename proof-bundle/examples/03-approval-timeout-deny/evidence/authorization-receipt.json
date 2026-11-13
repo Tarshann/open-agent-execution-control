@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "2",
+  "receiptId": "rcpt_d72d4041a9c193e07b993871",
+  "capabilityId": "mcp.demo.write_note",
+  "action": "mcp.callTool:write_note",
+  "decision": "DENY",
+  "risk": "MEDIUM",
+  "mode": "WRITE",
+  "policyVersion": "sha256:a59976bf642e84dbc7e76863a6682ed54175a9fc5f1ca987bbbde729ae988af9",
+  "tenantId": "local",
+  "environment": "local",
+  "invocationHash": "903fea8efbcc36c70ff9713ad540323519a01dbfbfd76169cd3296d7cfb1224a",
+  "evidenceHash": "9091e0b8c41de9bc4cb77203b960977a3a166a05235e83b5bb1292b2b02aa8cf",
+  "proofChainHash": "69316f70788a380327afb5708c3e4aba643e964c7c8c38eda011c6ca87debb33",
+  "timestamp": "2026-11-12T21:23:59.481Z",
+  "signingKeyId": "strix-demo",
+  "signature": "x0M842-9gI_1ulDXJ4MCgah6IT8PstH_LvDqlHUslwcHcXxTVSsUkndMFRUT1Ulgc4UZHRR2iZvVYNphguMdDQ",
+  "tool": "strix-gateway",
+  "approvalReason": "TIMEOUT"
+}

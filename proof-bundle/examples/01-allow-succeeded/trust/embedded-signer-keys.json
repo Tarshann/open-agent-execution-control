@@ -1,0 +1,10 @@
+{
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "strix-demo",
+      "x": "8eMpvEIXGOX1alaPLBvsEEyfO3CwF71uu81SAarPkdI"
+    }
+  ]
+}

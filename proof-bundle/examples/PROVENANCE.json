@@ -1,0 +1,60 @@
+{
+  "generatedAt": "2026-11-12T21:24:06.115Z",
+  "nature": "Real @strixgov/mcp-proxy runtime, real signatures, ephemeral demo gateway key authorized by an ephemeral DEMO issuer root; synthetic inert workload. Not a production or customer event, and not a Strix-issued authorization.",
+  "generatedBy": "validation/proof-bundle/run.mjs",
+  "packages": {
+    "@strixgov/mcp-proxy": {
+      "version": "0.2.2",
+      "integrity": "sha512-eaXWz6V/yZQY1dhwPYQv0QBDtsIf6Hb4vFwO+ZffNKEO+MveijWgIvFwE+liIjCeDUYbsf6pgtcG84oNkYh1RA=="
+    },
+    "@strixgov/tool-gateway": {
+      "version": "0.5.0",
+      "integrity": "sha512-fXq6OOFQoE4m5Hi6iU1rfy1I5FcCexDXMgGJe0KeGA/ngWtcq/sBI8WKdbPvRaGAPCfn5zhLxuEd7T4Kxn2/xA=="
+    },
+    "@strixgov/mcp-adapter": {
+      "version": "0.1.4",
+      "integrity": "sha512-s09VEND4XbAIMxhClE2mPMdnLMjOQYNZhQr4/oMC5P4JR25NHbRYJEp96inTCEz/ry3tYkwN+IY7CwotktI+4A=="
+    },
+    "@strixgov/verifier": {
+      "version": "1.25.0",
+      "integrity": "sha512-4DqBd7pCZ+sr514Kp4VDh4XL/YwJL4WXfF0JPCechQZzMcWP26iqdJL/Vl7R/oMDg0Xyghmz6guhOcMFYbK4Ww=="
+    }
+  },
+  "signerPublicJwk": {
+    "kty": "OKP",
+    "crv": "Ed25519",
+    "kid": "strix-demo",
+    "x": "8eMpvEIXGOX1alaPLBvsEEyfO3CwF71uu81SAarPkdI"
+  },
+  "issuerRootKeyId": "strix-demo-issuer-root",
+  "authorizationId": "ia_demo-mcp-proxy",
+  "privateKeyDestroyed": true,
+  "issuerRootKeyDestroyed": true,
+  "bundles": [
+    {
+      "dir": "01-allow-succeeded",
+      "receiptId": "rcpt_038c1de8128ee0a1219412d9",
+      "bundleId": "ppb_cef8810a1f4e3e07a6cd2e42e1056587"
+    },
+    {
+      "dir": "02-deny",
+      "receiptId": "rcpt_c1b48240f5061b7e0d571109",
+      "bundleId": "ppb_79def8593d07afca9d361892592bae77"
+    },
+    {
+      "dir": "03-approval-timeout-deny",
+      "receiptId": "rcpt_d72d4041a9c193e07b993871",
+      "bundleId": "ppb_9cf4f2d5145c3c07298dffdc8a4e04b3"
+    },
+    {
+      "dir": "04-approved-succeeded",
+      "receiptId": "rcpt_c9ae78898995bdc645bd20c1",
+      "bundleId": "ppb_a37e1fe1156b7342ccaf1419371d614f"
+    },
+    {
+      "dir": "05-allow-tool-failed",
+      "receiptId": "rcpt_62d64a9d844f3ad302ddc6ef",
+      "bundleId": "ppb_5240179a939309f32c2823d9d92d46b7"
+    }
+  ]
+}

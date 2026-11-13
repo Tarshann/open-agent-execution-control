@@ -1,0 +1,10 @@
+{
+  "keys": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "kid": "vec-signer-2026",
+      "x": "lLEUGSCaCmSrV4KV0H77n3an3DPmDlXXK4XINHOtdBI"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "2",
+  "receiptId": "rcpt_c9ae78898995bdc645bd20c1",
+  "capabilityId": "mcp.demo.write_note",
+  "action": "mcp.callTool:write_note",
+  "decision": "ALLOW",
+  "risk": "MEDIUM",
+  "mode": "WRITE",
+  "policyVersion": "sha256:a59976bf642e84dbc7e76863a6682ed54175a9fc5f1ca987bbbde729ae988af9",
+  "tenantId": "local",
+  "environment": "local",
+  "invocationHash": "afe2e742417a98c5339134bebe012d48f8baae569e10f30a09b5a0b5ba59b454",
+  "evidenceHash": "1fa42e672867c443253591040e1183382f30ec2fbb92b3b261f7156dd813024f",
+  "proofChainHash": "812b092679f13f92468aca11816a42d33cde25640dd4f20a6761f2f47cb20665",
+  "timestamp": "2026-11-12T21:23:59.749Z",
+  "signingKeyId": "strix-demo",
+  "signature": "HgsTe0eJKj_29oxgSSMPrA34QlF4qPLJ5NqX-1wfxEOcaA3Wf9cU0Uu_aCTDl7iH7sVFqlw4flGwumCrGz2_Aw",
+  "tool": "strix-gateway",
+  "approvedBy": "validation-harness",
+  "approvalReason": "USER_APPROVED"
+}
