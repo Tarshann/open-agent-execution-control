@@ -1,9 +1,10 @@
 # STRIX GOVERNANCE — PORTABLE PROOF BUNDLE V1
 
-Readiness report for `1.0.0-rc.2`, 2026-11-12. It supersedes the rc.1 report
-and answers the gate assessment of the same date (HOLD commercial release; GO
-for bounded integration engineering). Every result below comes from a command
-that was run; commands are in §6.
+Readiness report for `1.0.0-rc.2`, written 2026-11-12 and updated 2026-11-13
+after the work was merged and CI ran for the first time. It supersedes the
+rc.1 report and answers the gate assessment of 2026-11-12 (HOLD commercial
+release; GO for bounded integration engineering). Every result below comes
+from a command that was run; commands are in §6.
 
 Hosts: Windows 11 (Node 24.21.0, Python 3.12.10) and Ubuntu on WSL2 (Node
 18.20.8, Node 22.23.3, Python 3.14.4).
@@ -26,8 +27,12 @@ Since rc.1:
   `@strixgov/mcp-proxy` 0.2.2 and `@strixgov/verifier` 1.25.0; the gateway's
   keyring layout and a live key rotation are tested against the real gateway.
 
-Not done: nothing is committed, pushed, published or deployed. No production
-system was touched.
+Merged to `main` on 2026-11-13 as pull request 21 of
+`Tarshann/open-agent-execution-control` (commit `166216d`, merge commit
+`5fde034`). The repository is public, so the source, vectors and example
+bundles are publicly readable. **Still not done:** no package is published
+to a registry, nothing is deployed, and no production system was touched.
+Merging is not a release decision; the hold stands.
 
 **Most important remaining risk.** The mechanism exists; the authority does
 not. **No Strix issuer root exists.** Every authorization so far was signed
@@ -135,13 +140,31 @@ checks, 31 pass.
 The five Linux skips are tests that need the `@strixgov` npm packages or a
 `python` executable, neither of which was installed in the Linux copy.
 
-**Not tested:** macOS; GitHub CI (configured, never run); the Signed Evidence
-conformance corpus (it is not in the npm package — it lives in the platform
-repository); any hosted-tenant record; an authorization from a real root.
+**GitHub CI (first runs, 2026-11-13).** Workflow `tests`, six jobs, all
+passed, on the pull request (run 43491309528, commit `166216d`) and again on
+`main` after the merge (run 43491431628, merge commit `5fde034`):
 
-**Frozen revision:** there is none yet. The work is uncommitted; the bytes
-tested are identified by `release/SHA256SUMS`. A commit is needed before
-anyone can reproduce "this revision".
+| Job | ubuntu-latest | windows-latest |
+|---|---|---|
+| `proof-bundle`, Node 18 | pass | pass |
+| `proof-bundle`, Node 22 | pass | pass |
+| `pytest` (skills suites + Python interop over the vectors) | pass | pass |
+
+This is the first run of the suites on machines other than the one they were
+written on. What CI does **not** cover: the jobs install no npm packages, so
+the tests that need the real `@strixgov` packages are skipped there — the
+cross-check against `@strixgov/verifier`, the live-gateway keyring and
+rotation test, and the real-proxy harness (`validation/proof-bundle/run.mjs`)
+ran only on the Windows development host.
+
+**Not tested:** macOS; the Signed Evidence conformance corpus (it is not in
+the npm package — it lives in the platform repository); any hosted-tenant
+record; an authorization from a real root.
+
+**Frozen revision:** commit `166216d` (on `main` via merge commit `5fde034`).
+The local results in the table above were obtained on that tree; a fresh
+clone of it was re-checked before pushing. `release/SHA256SUMS` identifies
+the files a customer or operator runs.
 
 ## 7. Customer delivery package
 
@@ -184,7 +207,7 @@ Security assumptions
 - SHA-256 and Ed25519 hold; neither is post-quantum.
 
 Operational constraints
-- Checksums are unsigned; nothing is published; no external audit.
+- Checksums are unsigned; no package is published to a registry; no external audit.
 - The independent review was one reviewer in one pass, not an audit.
 
 ## 9. Release readiness
@@ -213,13 +236,12 @@ the gate decisions are the assessor's.
 | D — Architecture | HOLD | Gateway-to-issuer trust relationship designed and implemented offline; one model for all deployment types described | Who the issuer is; enrolment; alignment of the encoding with TM-1 if required |
 | E — Security | HOLD | A customer can authenticate a gateway key's authority against a root; impersonation, substitution, scope and standing cases covered | No Strix root to authenticate against |
 | F — Integration | HOLD | Nothing | Hosted platform not integrated; needs access |
-| G — Reliability | Provisional PASS | Reproduced on two operating systems and three Node versions; live gateway and rotation tested | Reproduction by someone else, at a committed revision |
+| G — Reliability | Provisional PASS | Reproduced on two operating systems and three Node versions; live gateway and rotation tested; GitHub CI green on Linux and Windows at a committed revision | Reproduction by a second party, including the real-proxy harness, which CI does not run |
 | H — Evidence | HOLD | Signature validity, key identity, key authority and standing are separate report fields; statements attributed per signer | Same as E |
 | J — Adversarial | HOLD | 26 issuer and key-substitution vectors; independent adversarial review with all findings closed | Acceptance of that evidence by the assessor |
 
 Approval requirements: owner review of this report, of
-`docs/ISSUER-AUTHORIZATION.md` §5 (the issuer decision) and of finding F-1; a
-decision to commit, so that a revision can be frozen.
+`docs/ISSUER-AUTHORIZATION.md` §5 (the issuer decision) and of finding F-1.
 
 Blocking tasks for `RELEASE_READY`
 - B-1. Decide the issuer model and create a real root under an offline
@@ -231,8 +253,9 @@ Blocking tasks for `RELEASE_READY`
   *Needs hosted access.*
 - B-4. Re-run the Signed Evidence refusal corpus against verifier 1.25.0 in
   the platform repository.
-- B-5. Commit, run CI, and have a second party reproduce the corpus at that
-  revision.
+- B-5. Have a second party reproduce the corpus at `166216d`, including the
+  real-proxy harness. *(Committing and a green CI run, the other two parts of
+  this item, were completed on 2026-11-13.)*
 - B-6. Have an engineer unfamiliar with Strix follow the verifier guide.
 - B-7. Independent audit.
 
