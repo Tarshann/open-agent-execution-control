@@ -424,3 +424,110 @@ What can be said in advance is how the evidence maps to the choice:
 Until the evidence exists, B-1 and B-2 stay open and the release stays on
 hold. This section is a proposal for review; it does not authorize creating,
 publishing or changing any key.
+
+### 7.9 Investigation progress, 2026-11-14
+
+The steps of §7.6 that need only public endpoints and published packages
+were attempted. All of it was read-only: two unauthenticated `GET` requests
+and reading and running published code. Nothing was signed, published or
+changed. The recommendation in §7.8 is **unchanged — still none**.
+
+| Step | Status | Result |
+|---|---|---|
+| 1. Key fingerprint comparison | **Not completed — blocked on an input** | No production trust-mark grant id is known to this repository, so there was no grant to fingerprint |
+| 2. Authoritative role metadata | Not started | Needs the platform repository |
+| 3. Custody evidence | Not started | Needs the key operators |
+| 4. Permitted scope | Not started | Needs the platform repository (ADR-029) |
+| 5. Historical verification compatibility | **Completed for the published verifier; not for the platform runtime** | See below |
+| 6. Signature-domain check | **Completed** | The two signing inputs cannot collide |
+
+**Step 1 — what was tried, and what is needed.**
+
+- `GET https://www.strixgov.com/api/public/proof/trustmark/tm-grant-academy-demo`
+  → HTTP 404. That id is the only grant id known here; it belongs to a local
+  demonstration with ephemeral keys, so a 404 from production is expected and
+  shows nothing about real grants.
+- `GET https://www.strixgov.com/api/public/proof/trustmark/revocations` (the
+  default list location in `@strixgov/verifier` 1.25.0) → HTTP 404. Directly
+  observed: no revocation list is served at the default path. This matches
+  the 2026-09-10 note in §7.5.
+- No grant ids were guessed against production.
+
+*Needed from the owner:* the id of one grant that is live in production.
+With it, step 1 is one command — `npx @strixgov/verifier trustmark <grantId>
+--json` — plus a comparison of the verifying key's thumbprint with the two in
+§7.1. Until then the identity of the trust-mark authority key stays in §7.5,
+unverified.
+
+**Step 5 — how existing verification selects a key from the JWKS.**
+
+Read from the source of `@strixgov/verifier` 1.25.0. This is static reading
+of one published package; no hosted record was verified.
+
+Key ids are matched three ways (`resolveJwksByKid`): exactly;
+case-insensitively; and, for a redacted id of the form `strix-***-YYYY-MM`,
+by **suffix** — every entry whose key id ends in `-YYYY-MM`.
+
+| Record type (function) | Selection among matching entries |
+|---|---|
+| Signed evidence (`verify`, `verifyEvidenceV2`) | Tries every match |
+| Execution outcome (`verifyExecutionOutcomeRecord`) | Tries every match |
+| Agent session, selective disclosure | Tries every match |
+| Trust-mark grant | Tries every match |
+| Trust-mark revocation list (`resolveRevocationStatus`) | **First match only** |
+| Approval artifact (`verifyApprovalArtifact`) | **First match only** |
+| Attestation (`verifyAttestation`) | **First match only** |
+| Tool-gateway receipt and snapshot, when keys are fetched from the JWKS | **First match only** |
+
+What follows from that, with its status:
+
+- *Verified by reading:* adding an entry to the JWKS changes no existing
+  result **provided its key id matches no existing lookup** — it must not
+  equal any current key id ignoring case, and must not end in `-YYYY-MM`.
+  An id that did end that way would become a candidate for every redacted
+  lookup of that month. This is a concrete naming constraint on an issuer
+  root published there (Option 2), and on publishing the trust-mark
+  authority under any new id (Option 1).
+- *Inference, not exercised:* for the duplicate id `strix-prod-2026-05`, the
+  first matching entry is key B (entry 1 in §7.1). A record of a
+  first-match-only type signed by **key A** under that id would therefore
+  fail to verify through this package. Whether any such record exists is
+  unknown.
+- *Inference:* the duplicate and the aliases cannot simply be removed.
+  Records signed by key A under each aliased id rely on those entries, and
+  the document declares a retention policy of at least 24 months. So the
+  JWKS should be expected to remain unusable as a bundle trust store (§7.2)
+  for the foreseeable future.
+- *Consequence for B-2, under either option:* publishing the root in the
+  JWKS is not sufficient by itself. Relying parties need the root as a
+  **ready-made trust-store entry** — key id, `role: issuer-root`, key bytes —
+  with its thumbprint stated somewhere they can authenticate. The JWKS can
+  corroborate that entry; it cannot be the thing they load.
+- *Not covered:* the platform's own runtime resolver, which the package's
+  comments say exists and matches case-insensitively; any other consumer of
+  the JWKS.
+
+**Step 6 — the two signing inputs cannot collide.**
+
+A trust-mark grant and its revocation list are signed over
+`scjCanonicalize(payload)`. Run against 1.25.0, that function's output
+begins with `n`, `t` or `f`, a digit or `-`, `"`, `[` or `{`, according to
+the type of value; for a grant it begins `{"`. An issuer authorization is
+signed over the DSSE pre-authentication encoding (SPEC §7.4), which always
+begins with the bytes `DSSEv1 `. No SCJ output begins with `D`, so no byte
+string is both. Checked directly as well: a signature made over SCJ bytes
+does not verify as an authorization signature over the same payload, and
+does verify over the SCJ bytes themselves.
+
+The same holds for gateway receipts and outcomes, whose signed bytes begin
+with `{`. Reusing one key for trust-mark grants and for issuer
+authorizations (Option 1) would therefore not let either kind of signature
+be replayed as the other. That removes one possible objection to Option 1;
+it does not supply the identity, custody or scope evidence that option
+needs.
+
+**Where this leaves the two options.** Neither is closer to being
+recommended. Two things are now known that apply to both: the naming
+constraint on any new JWKS entry, and that B-2 needs a trust-store entry
+distributed alongside the JWKS. Steps 1 to 4 still decide between them, and
+step 1 is waiting only on a grant id.
