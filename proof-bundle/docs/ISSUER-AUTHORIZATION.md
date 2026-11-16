@@ -311,9 +311,9 @@ by its **key bytes** (thumbprint), never by a key id pattern.
 Not known, and not knowable from this repository or from the public
 endpoint:
 
-- Which key, A or B, is the trust-mark authority key — or whether it is
-  either. No trust-mark grant was fetched; nothing here ties a grant's
-  signature to a thumbprint.
+- ~~Which key, A or B, is the trust-mark authority key — or whether it is
+  either.~~ **Resolved on 2026-11-14: it is key A.** See §7.9, step 1. The
+  remaining items in this list are still unverified.
 - Whether any private key behind this JWKS is held offline, in a hardware
   module, in a cloud key service, or in application configuration. §7.3
   quotes a claim that the authority key is offline; no custody evidence has
@@ -424,3 +424,201 @@ What can be said in advance is how the evidence maps to the choice:
 Until the evidence exists, B-1 and B-2 stay open and the release stays on
 hold. This section is a proposal for review; it does not authorize creating,
 publishing or changing any key.
+
+### 7.9 Investigation progress, 2026-11-14
+
+The steps of §7.6 that need only public endpoints and published packages
+were carried out. All of it was read-only: unauthenticated `GET` requests to
+public endpoints, and reading and running published code. Nothing was
+signed, published or changed. Step 1 produced the fact §7.8 was waiting for;
+the recommendation that follows from it is in §7.10.
+
+| Step | Status | Result |
+|---|---|---|
+| 1. Key fingerprint comparison | **Completed** | Both production grants on record verify under **key A** and not under key B |
+| 2. Authoritative role metadata | Not started | Needs the platform repository |
+| 3. Custody evidence | Not started | Needs the key operators |
+| 4. Permitted scope | Not started | Needs the platform repository (ADR-029) |
+| 5. Historical verification compatibility | **Completed for the published verifier; not for the platform runtime** | See below |
+| 6. Signature-domain check | **Completed** | The two signing inputs cannot collide |
+
+**Step 1 — the trust-mark authority key is key A.**
+
+Two grant ids were found in the platform repository's own records, not
+guessed: `tm-grant-academy-2026-06`, which its public-claims registry calls
+"the only grant on record", and `tm-grant-academy-2026-06-2`, named in a
+session summary as a re-mint of it. Both resolve in production, issued to The
+Academy (`lic-academy-001`) for `https://app.academytn.com`. Each was fetched
+from
+`https://www.strixgov.com/api/public/proof/trustmark/<grantId>` (HTTP 200).
+
+*Directly observed, for both grants:*
+
+- `iss` is `https://www.strixgov.com`, `capability_id` is `TM-1`,
+  `environment` is `prod`, `tenant_id` is `academy`.
+- `signingKeyId` is the redacted form `strix-***-2026-06`.
+- Validity is `2026-06-17T00:00:00Z` to `2026-09-15T00:00:00Z`. Both are
+  expired; the server reports `lifecycle: EXPIRED`, `badge: RED`,
+  `overall_usability: NOT_USABLE`.
+- The server reports `revocation_check` as `NOT_CHECKED`, source `NONE`,
+  reason `NO_SIGNED_LIST_CONFIGURED`.
+
+*Verified here, independently of the server's own verdict:* the grant's
+hex signature was checked over the SCJ-canonical payload against each of the
+two published keys separately.
+
+| Grant | Key A `6B8y…LIy0` | Key B `3Beg…n55U` |
+|---|---|---|
+| `tm-grant-academy-2026-06` | **verifies** | does not verify |
+| `tm-grant-academy-2026-06-2` | **verifies** | does not verify |
+
+The published verifier agrees on the signature: run on the second grant,
+`@strixgov/verifier` 1.25.0 passes the signature rule and stops at the next
+one, reporting `tm1_validity_window_violated` (the grant is expired) and
+`Revocation (r10): not checked (no list source)`.
+
+*What this establishes:* the key that signed every production trust-mark
+grant on record is key A — the same key bytes the JWKS publishes as
+`strix-dev-2026-05`, `strix-prod-2026-05`, `strix-prod-2026-06` and
+`strix-prod-2026-07` (§7.1). The trust-mark authority is therefore **not a
+separately published key**; it is a key in the `platform` namespace, the
+namespace of the platform's own signing keys.
+
+*What it does not establish:* how key A is held. The source comment quoted
+in §7.3 says the authority key "NEVER touches the platform runtime" and is
+used offline. Public evidence cannot confirm or refute that. It is, however,
+in tension with it: the same key is published under ids that follow the
+platform's operational naming pattern, one of them for a `dev` environment.
+Either key A is an operational key that also signs grants, or it is an
+offline key that has been published under operational and `dev` labels.
+Which, is a custody question (step 3).
+
+Smaller points. *Directly observed:* `tm-grant-academy-demo`, a local
+demonstration id, returns 404, as does the default revocation-list path
+`https://www.strixgov.com/api/public/proof/trustmark/revocations`. *Stated by
+the platform repository, not verified here:* its claims registry says that
+as of 2026-10-01 no unexpired grant is known. Both grants observed here are
+expired, which is consistent with that and does not prove it. No grant ids
+were guessed against production.
+
+**Step 5 — how existing verification selects a key from the JWKS.**
+
+Read from the source of `@strixgov/verifier` 1.25.0. This is static reading
+of one published package; no hosted record was verified.
+
+Key ids are matched three ways (`resolveJwksByKid`): exactly;
+case-insensitively; and, for a redacted id of the form `strix-***-YYYY-MM`,
+by **suffix** — every entry whose key id ends in `-YYYY-MM`.
+
+| Record type (function) | Selection among matching entries |
+|---|---|
+| Signed evidence (`verify`, `verifyEvidenceV2`) | Tries every match |
+| Execution outcome (`verifyExecutionOutcomeRecord`) | Tries every match |
+| Agent session, selective disclosure | Tries every match |
+| Trust-mark grant | Tries every match |
+| Trust-mark revocation list (`resolveRevocationStatus`) | **First match only** |
+| Approval artifact (`verifyApprovalArtifact`) | **First match only** |
+| Attestation (`verifyAttestation`) | **First match only** |
+| Tool-gateway receipt and snapshot, when keys are fetched from the JWKS | **First match only** |
+
+What follows from that, with its status:
+
+- *Verified by reading:* adding an entry to the JWKS changes no existing
+  result **provided its key id matches no existing lookup** — it must not
+  equal any current key id ignoring case, and must not end in `-YYYY-MM`.
+  An id that did end that way would become a candidate for every redacted
+  lookup of that month. This is a concrete naming constraint on an issuer
+  root published there (Option 2), and on publishing the trust-mark
+  authority under any new id (Option 1).
+- *Inference, not exercised:* for the duplicate id `strix-prod-2026-05`, the
+  first matching entry is key B (entry 1 in §7.1). A record of a
+  first-match-only type signed by **key A** under that id would therefore
+  fail to verify through this package. Whether any such record exists is
+  unknown.
+- *Inference:* the duplicate and the aliases cannot simply be removed.
+  Records signed by key A under each aliased id rely on those entries, and
+  the document declares a retention policy of at least 24 months. So the
+  JWKS should be expected to remain unusable as a bundle trust store (§7.2)
+  for the foreseeable future.
+- *Consequence for B-2, under either option:* publishing the root in the
+  JWKS is not sufficient by itself. Relying parties need the root as a
+  **ready-made trust-store entry** — key id, `role: issuer-root`, key bytes —
+  with its thumbprint stated somewhere they can authenticate. The JWKS can
+  corroborate that entry; it cannot be the thing they load.
+- *Not covered:* the platform's own runtime resolver, which the package's
+  comments say exists and matches case-insensitively; any other consumer of
+  the JWKS.
+
+**Step 6 — the two signing inputs cannot collide.**
+
+A trust-mark grant and its revocation list are signed over
+`scjCanonicalize(payload)`. Run against 1.25.0, that function's output
+begins with `n`, `t` or `f`, a digit or `-`, `"`, `[` or `{`, according to
+the type of value; for a grant it begins `{"`. An issuer authorization is
+signed over the DSSE pre-authentication encoding (SPEC §7.4), which always
+begins with the bytes `DSSEv1 `. No SCJ output begins with `D`, so no byte
+string is both. Checked directly as well: a signature made over SCJ bytes
+does not verify as an authorization signature over the same payload, and
+does verify over the SCJ bytes themselves.
+
+The same holds for gateway receipts and outcomes, whose signed bytes begin
+with `{`. Reusing one key for trust-mark grants and for issuer
+authorizations (Option 1) would therefore not let either kind of signature
+be replayed as the other. That removes one possible objection to Option 1;
+it does not supply the identity, custody or scope evidence that option
+needs.
+
+**Where this leaves the two options.** Step 1 decides it; see §7.10. Two
+things from step 5 apply whichever is chosen: the naming constraint on any
+new JWKS entry, and that B-2 needs a trust-store entry distributed alongside
+the JWKS.
+
+### 7.10 Recommendation after step 1
+
+§7.8 declined to recommend until the evidence existed, and stated in advance
+how the evidence would map to the choice: *"If the authority turns out to be
+key A … → Option 2."* It has turned out to be key A.
+
+**Recommendation, for owner review: Option 2 — a dedicated offline issuer
+root, published through the existing Strix trust-distribution channel.**
+
+Why step 1 is sufficient, without steps 2 to 4:
+
+- Steps 2, 3 and 4 could only ever have *supported* Option 1. They cannot
+  rescue it from this result. Even if custody of key A proved to be exactly
+  as the source comment claims, the root a customer is asked to trust would
+  be a key that Strix itself publishes under a `dev` key id and under three
+  operational `prod` key ids, with one of those ids ambiguous. A relying
+  party cannot distinguish "offline authority" from "operational key" for
+  it, and Strix could not show them the difference from public material.
+- Reuse would also make one key answerable for four things at once: platform
+  signing under those ids, trust-mark grants, their revocation list, and
+  gateway authorizations. A rotation or compromise forced by any one would
+  take the others with it.
+- Option 2 costs one additional key to hold. In exchange its custody can be
+  established at creation instead of reconstructed, its key id can satisfy
+  the naming constraint from step 5 from the start, and nothing about its
+  history needs explaining.
+
+Option 2 is still not a disconnected hierarchy: the root is published at the
+same JWKS endpoint, alongside the existing keys, and handed to relying
+parties as a trust-store entry (§7.9, step 5).
+
+What would change this recommendation:
+
+- Evidence that key A's private half has never been available to any
+  running system and that every non-authority key id for it is a label
+  only — **and** the owner's judgement that this can be explained to
+  customers. That would make Option 1 defensible again, not preferable.
+- An owner decision that one Strix authority key is wanted regardless.
+
+What this recommendation is not:
+
+- It is not an authorization to create, publish or change any key. B-1 and
+  B-2 remain open decisions for the owner.
+- It is not a finding about key A's custody, or about the trust-mark
+  programme. Steps 2 to 4 remain worth doing for their own sake: the tension
+  between the "offline authority" description and the published key ids is
+  now a documented open question, independent of Portable Proof Bundle.
+- It changes nothing in the bundle format, either verifier, the issuer-root
+  design in §3, or revision `166216d`. Commercial release remains on HOLD.
